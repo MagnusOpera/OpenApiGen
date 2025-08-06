@@ -115,8 +115,8 @@ public static class TypeScriptGenerator {
             sb.Append(' ', indent + 2);
             var variants = schema.AnyOf.Select((variant, i) => MapSchemaType(indent + 2, variant));
             sb.AppendLine($"  value: {string.Join(" | ", variants)};");
-        } else if (schema.Type == "array" && schema.Items is not null) {
-            var itemType = MapSchemaType(indent, schema.Items);
+        } else if (schema.Type == "array") {
+            var itemType = MapSchemaType(indent, schema.Items!);
             sb.Append(' ', indent);
             sb.AppendLine($"  items: {itemType}[]");
         } else if (schema.Properties is not null) {
@@ -142,7 +142,7 @@ public static class TypeScriptGenerator {
             : s.Type == "integer" || s.Type == "number" ? "number"
             : s.Type == "boolean" ? "boolean"
             : s.Type == "array" ? $"{MapSchemaType(indent, s.Items ?? new Schema { Type = "any" })}[]"
-            : s.Type == "object" && s.Properties is not null ? $"{GenerateInterfaceBody(indent + 2, s, s.Required)}"
+            : s.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, s, s.Required)}"
             : "any";
 
         var nullable = s.Nullable == true;
