@@ -35,22 +35,20 @@ public static class TypeScriptGenerator {
 
                 string? resInterface = null;
                 foreach (var (responseType, response) in op.Responses) {
+                    string? resTypeInterface = null;
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
-                        var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
                         sb.Append($"export interface {resTypeInterface} ");
                         sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema, resContent.Schema.Required));
-                        if (responseType == "200") {
-                            resInterface = resTypeInterface;
-                        }
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
-                        var resTypeInterface = "string";
-                        if (responseType == "200") {
-                            resInterface = resTypeInterface;
-                        }
+                        resTypeInterface = "string";
+                    }
+                    if (responseType == "200") {
+                        resInterface = resTypeInterface;
                     }
                 }
 
-                var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(indent, param)}");
+                var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Select(ParameterQuery);
                 var pathQuery = queryArgs is not null ? $"?{string.Join("&", queryArgs)}" : "";
                 var request = reqInterface is not null ? $", request: {reqInterface}" : null;
@@ -72,15 +70,15 @@ public static class TypeScriptGenerator {
         }
     }
 
-    private static string ParameterPrototype(int indent, Parameter param) {
-        var tsType = MapSchemaType(indent, param.Schema);
-        var optional = param.Required != true && param.Schema.Default is null ? "?" : "";
-        var def = param.Schema.Default is not null ? $" = {param.Schema.Default}" : "";
-        return $"{param.Name}{optional}: {tsType}{def}";
+    private static string ParameterPrototype(Parameter param) {
+        var tsType = MapSchemaType(0, param.Schema);
+        var optional = param.Required != true ? "?" : "";
+        return $"{param.Name}{optional}: {tsType}";
     }
 
     private static string ParameterQuery(Parameter param) {
-        return $"{param.Name}=${{{param.Name}}}";
+        var def = param.Schema.Default is not null ? $" ?? {param.Schema.Default}" : "";
+        return $"{param.Name}=${{{param.Name}{def}}}";
     }
 
     private static void Add(Dictionary<string, List<(string, Operation, string, string)>> dict, Operation op, string path, string method) {
