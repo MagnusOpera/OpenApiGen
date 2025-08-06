@@ -24,34 +24,67 @@ public static class TypeScriptGenerator {
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
                 var functionName = GenerateFunctionName(path, method);
-                var reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                var resInterface = $"{GenerateInterfaceName(path, method)}Response";
 
-                if (method == "get" && op.Parameters is { Count: > 0 }) {
-                    sb.AppendLine($"export interface {reqInterface} {{");
-                    foreach (var param in op.Parameters) {
-                        var tsType = MapSchemaType(indent, param.Schema);
-                        var optional = param.Required != true ? "?" : "";
-                        var def = param.Schema.Default is not null ? $" /* default: {param.Schema.Default} */" : "";
-                        sb.AppendLine($"  {param.Name}{optional}: {tsType}");
-                    }
-                    sb.AppendLine("}");
-                } else if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
+                string? reqInterface = null;
+                if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
+                    reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export interface {reqInterface} ");
                     sb.AppendLine(GenerateInterfaceBody(indent, reqContent.Schema, reqContent.Schema.Required));
+                } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
+                    reqInterface = "string";
                 }
 
-                if (op.Responses.TryGetValue("200", out var res) &&
-                    res.Content?.TryGetValue("application/json", out var resContent) == true) {
-                    sb.Append($"export interface {resInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
+                string? resInterface = null;
+                foreach (var (responseType, response) in op.Responses) {
+                    if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
+                        var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        sb.Append($"export interface {resTypeInterface} ");
+                        sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
+                        if (responseType == "200") {
+                            resInterface = resTypeInterface;
+                        }
+                    } else if (response.Content?.ContainsKey("text/plain") == true) {
+                        var resTypeInterface = "string";
+                        if (responseType == "200") {
+                            resInterface = resTypeInterface;
+                        }
+                    }
                 }
+
+                // if (op.Responses?.Content?.TryGetValue("application/json", out var resContent) == true) {
+                    //     resInterface = $"{GenerateInterfaceName(path, method)}Response";
+                // } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
+                //     reqInterface = "string"
+                // }
+
+
+                // var reqInterface = $"{GenerateInterfaceName(path, method)}Request";
+                // var resInterface = $"{GenerateInterfaceName(path, method)}Response";
+
+                // if (method == "get" && op.Parameters is { Count: > 0 }) {
+                // } else if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
+                //     sb.Append($"export interface {reqInterface} ");
+                //     sb.AppendLine(GenerateInterfaceBody(indent, reqContent.Schema, reqContent.Schema.Required));
+                // }
+
+                // if (op.Responses.TryGetValue("200", out var res) &&
+                //     res.Content?.TryGetValue("application/json", out var resContent) == true) {
+                //     sb.Append($"export interface {resInterface} ");
+                //     sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
+                // }
 
                 if (method == "get") {
-                    var paramsArg = op.Parameters?.Aggregate("", (acc, parameter) => $"{acc}, {ParameterPrototype(indent, parameter)}");
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  const response = await axios.get<{resInterface}>(`{path}`)");
-                    sb.AppendLine($"  return response.data");
+                    var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(indent, param)}");
+                    var queryArgs = op.Parameters?.Select(ParameterQuery);
+                    var pathQuery = queryArgs is not null ? $"?{string.Join("&", queryArgs)}" : "";
+                    if (!string.IsNullOrEmpty(resInterface)) {
+                        sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise<{resInterface}> {{");
+                        sb.AppendLine($"  const response = await axios.get<{resInterface}>(`{ToTemplateString(path) + pathQuery}`)");
+                        sb.AppendLine($"  return response.data");
+                    } else {
+                        sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise {{");
+                        sb.AppendLine($"  await axios.get(`{ToTemplateString(path) + pathQuery}`)");
+                    }
                     sb.AppendLine("}");
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance, request: {reqInterface}): Promise<{resInterface}> {{");
@@ -70,9 +103,13 @@ public static class TypeScriptGenerator {
 
     private static string ParameterPrototype(int indent, Parameter param) {
         var tsType = MapSchemaType(indent, param.Schema);
-        var optional = param.Required != true ? "?" : "";
+        var optional = param.Required != true && param.Schema.Default is null ? "?" : "";
         var def = param.Schema.Default is not null ? $" = {param.Schema.Default}" : "";
         return $"{param.Name}{optional}: {tsType}{def}";
+    }
+
+    private static string ParameterQuery(Parameter param) {
+        return $"{param.Name}=${{{param.Name}}}";
     }
 
     private static void Add(Dictionary<string, List<(string, Operation, string, string)>> dict, Operation op, string path, string method) {
@@ -137,4 +174,7 @@ public static class TypeScriptGenerator {
 
     private static string Capitalize(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
+    public static string ToTemplateString(string path) =>
+        Regex.Replace(path, @"\{([^\}]+)\}", @"${$1}");
 }
