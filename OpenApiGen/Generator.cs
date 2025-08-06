@@ -118,7 +118,6 @@ public static class TypeScriptGenerator {
                 var isRequired = required?.Contains(name) == true;
                 var optional = isRequired ? "" : "?";
                 var type = MapSchemaType(indent, prop);
-                var def = prop.Default is not null ? $" /* default: {prop.Default} */" : "";
                 sb.Append(' ', indent);
                 sb.AppendLine($"  {name}{optional}: {type}");
             }
