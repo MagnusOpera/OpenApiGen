@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace OpenApiGen;
 
 public static class TypeScriptGenerator {
-    public static string Generate(OpenApiDocument document) {
+    public static void Generate(OpenApiDocument document, string outputPath) {
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
 
         foreach (var (path, pathItem) in document.Paths) {
@@ -15,52 +15,64 @@ public static class TypeScriptGenerator {
             if (pathItem.Patch is not null) Add(tags, pathItem.Patch, path, "patch");
         }
 
-        var sb = new StringBuilder();
         foreach (var (tag, operations) in tags) {
+            var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
+            sb.AppendLine("import { AxiosInstance } from \"axios\"");
+            sb.AppendLine();
+            var indent = 0;
             foreach (var (operationId, op, path, method) in operations) {
+                sb.AppendLine($"// === {method} {path} ===");
                 var functionName = GenerateFunctionName(path, method);
-                var reqInterface = $"{functionName}Request";
-                var resInterface = $"{functionName}Response";
+                var reqInterface = $"{GenerateInterfaceName(path, method)}Request";
+                var resInterface = $"{GenerateInterfaceName(path, method)}Response";
 
                 if (method == "get" && op.Parameters is { Count: > 0 }) {
                     sb.AppendLine($"export interface {reqInterface} {{");
                     foreach (var param in op.Parameters) {
-                        var tsType = MapSchemaType(param.Schema);
+                        var tsType = MapSchemaType(indent, param.Schema);
                         var optional = param.Required != true ? "?" : "";
                         var def = param.Schema.Default is not null ? $" /* default: {param.Schema.Default} */" : "";
-                        sb.AppendLine($"  {param.Name}{optional}: {tsType};{def}");
+                        sb.AppendLine($"  {param.Name}{optional}: {tsType}");
                     }
                     sb.AppendLine("}");
                 } else if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
-                    sb.AppendLine($"export interface {reqInterface} {{");
-                    GenerateInterfaceBody(sb, reqContent.Schema, reqContent.Schema.Required);
-                    sb.AppendLine("}");
+                    sb.Append($"export interface {reqInterface} ");
+                    sb.AppendLine(GenerateInterfaceBody(indent, reqContent.Schema, reqContent.Schema.Required));
                 }
 
                 if (op.Responses.TryGetValue("200", out var res) &&
                     res.Content?.TryGetValue("application/json", out var resContent) == true) {
-                    sb.AppendLine($"export interface {resInterface} {{");
-                    GenerateInterfaceBody(sb, resContent.Schema, resContent.Schema.Required);
-                    sb.AppendLine("}");
+                    sb.Append($"export interface {resInterface} ");
+                    sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
                 }
 
                 if (method == "get") {
-                    var paramsArg = op.Parameters is { Count: > 0 } ? $"params: {reqInterface}" : "";
-                    sb.AppendLine($"export function {functionName}(axios: AxiosInstance, {paramsArg}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  return axios.get(\"{path}\"{(paramsArg != "" ? ", { params }" : "")}).then(r => r.data)");
+                    var paramsArg = op.Parameters?.Aggregate("", (acc, parameter) => $"{acc}, {ParameterPrototype(indent, parameter)}");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise<{resInterface}> {{");
+                    sb.AppendLine($"  const response = await axios.get<{resInterface}>(`{path}`)");
+                    sb.AppendLine($"  return response.data");
                     sb.AppendLine("}");
                 } else {
-                    sb.AppendLine($"export function {functionName}(axios: AxiosInstance, request: {reqInterface}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  return axios.{method}(\"{path}\", request).then(r => r.data)");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance, request: {reqInterface}): Promise<{resInterface}> {{");
+                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(\"{path}\", request)");
+                    sb.AppendLine($"  return response.data");
                     sb.AppendLine("}");
                 }
 
                 sb.AppendLine();
             }
-        }
 
-        return sb.ToString();
+            var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
+            File.WriteAllText(outputFilename, sb.ToString());
+        }
+    }
+
+    private static string ParameterPrototype(int indent, Parameter param) {
+        var tsType = MapSchemaType(indent, param.Schema);
+        var optional = param.Required != true ? "?" : "";
+        var def = param.Schema.Default is not null ? $" = {param.Schema.Default}" : "";
+        return $"{param.Name}{optional}: {tsType}{def}";
     }
 
     private static void Add(Dictionary<string, List<(string, Operation, string, string)>> dict, Operation op, string path, string method) {
@@ -70,42 +82,53 @@ public static class TypeScriptGenerator {
         dict[tag].Add((id, op, path, method));
     }
 
-    private static void GenerateInterfaceBody(StringBuilder sb, Schema schema, List<string>? required) {
+    private static string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
         if (schema.Type == "array" && schema.Items is not null) {
-            var itemType = MapSchemaType(schema.Items);
-            sb.AppendLine($"  items: {itemType}[];");
-            return;
+            var itemType = MapSchemaType(indent, schema.Items);
+            sb.Append(' ', indent);
+            sb.AppendLine($"  items: {itemType}[]");
+        } else if (schema.Properties is not null) {
+            foreach (var (name, prop) in schema.Properties) {
+                var isRequired = required?.Contains(name) == true;
+                var optional = isRequired ? "" : "?";
+                var type = MapSchemaType(indent, prop);
+                var def = prop.Default is not null ? $" /* default: {prop.Default} */" : "";
+                sb.Append(' ', indent);
+                sb.AppendLine($"  {name}{optional}: {type}");
+            }
         }
-
-        if (schema.Properties is null) return;
-
-        foreach (var (name, prop) in schema.Properties) {
-            var isRequired = required?.Contains(name) == true;
-            var optional = isRequired ? "" : "?";
-            var type = MapSchemaType(prop);
-            var def = prop.Default is not null ? $" /* default: {prop.Default} */" : "";
-            sb.AppendLine($"  {name}{optional}: {type};{def}");
-        }
+        sb.Append(' ', indent);
+        sb.Append('}');
+        return sb.ToString();
     }
 
-    private static string MapSchemaType(Schema s) {
+    private static string MapSchemaType(int indent, Schema s) {
         var t = s.Ref is not null ? "any"
             : s.Type == "string" ? "string"
             : s.Type == "integer" || s.Type == "number" ? "number"
             : s.Type == "boolean" ? "boolean"
-            : s.Type == "array" ? $"{MapSchemaType(s.Items ?? new Schema { Type = "any" })}[]"
-            : s.Type == "object" && s.Properties is not null ? "{ [key: string]: any }"
+            : s.Type == "array" ? $"{MapSchemaType(indent, s.Items ?? new Schema { Type = "any" })}[]"
+            : s.Type == "object" && s.Properties is not null ? $"{GenerateInterfaceBody(indent + 2, s, s.Required)}"
             : "any";
 
         var nullable = s.Nullable == true;
         if (s.Enum is { Count: > 0 })
             return string.Join(" | ", s.Enum.Select(e => $"\"{e}\"")) + (nullable ? " | null" : "");
 
-        return t + (nullable ? " | null" : "");
+        return (nullable ? "null | " : "") + t;
     }
 
 
     private static string GenerateFunctionName(string path, string method) {
+        var parts = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+           .Select(p => Regex.Replace(p, "[^a-zA-Z0-9]", ""))
+           .Select(Capitalize);
+        return method + string.Concat(parts);
+    }
+
+    private static string GenerateInterfaceName(string path, string method) {
         var parts = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
            .Select(p => Regex.Replace(p, "[^a-zA-Z0-9]", ""))
            .Select(Capitalize);
