@@ -51,7 +51,8 @@ public static class TypeScriptGenerator {
                 foreach (var (responseType, response) in op.Responses) {
                     string? resTypeInterface = null;
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
-                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        var errResponseType = responseType == "200" ? "" : responseType;
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export interface {resTypeInterface} ");
                         sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema, resContent.Schema.Required));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
