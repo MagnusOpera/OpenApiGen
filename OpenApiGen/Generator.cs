@@ -142,7 +142,8 @@ public static class TypeScriptGenerator {
             s.AnyOf is not null ? string.Join(" | ", s.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, s.Required)))
             : s.Ref is not null ? "any"
             : s.Enum is not null ? string.Join(" | ", s.Enum.Select(e => $"\"{e}\""))
-            : s.Type == "string" ? (s.Format is null ? "string" : "File")
+            : s.Type == "string" && s.Format == "binary" ? "File"
+            : s.Type == "string" ? "string"
             : s.Type == "integer" || s.Type == "number" ? "number"
             : s.Type == "boolean" ? "boolean"
             : s.Type == "array" ? $"{MapSchemaType(indent, s.Items ?? new Schema { Type = "any" })}[]"
