@@ -8,11 +8,25 @@ public static class TypeScriptGenerator {
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
 
         foreach (var (path, pathItem) in document.Paths) {
-            if (pathItem.Get is not null) Add(tags, pathItem.Get, path, "get");
-            if (pathItem.Post is not null) Add(tags, pathItem.Post, path, "post");
-            if (pathItem.Put is not null) Add(tags, pathItem.Put, path, "put");
-            if (pathItem.Delete is not null) Add(tags, pathItem.Delete, path, "delete");
-            if (pathItem.Patch is not null) Add(tags, pathItem.Patch, path, "patch");
+            if (pathItem.Get is not null) {
+                Add(tags, pathItem.Get, path, "get");
+            }
+
+            if (pathItem.Post is not null) {
+                Add(tags, pathItem.Post, path, "post");
+            }
+
+            if (pathItem.Put is not null) {
+                Add(tags, pathItem.Put, path, "put");
+            }
+
+            if (pathItem.Delete is not null) {
+                Add(tags, pathItem.Delete, path, "delete");
+            }
+
+            if (pathItem.Patch is not null) {
+                Add(tags, pathItem.Patch, path, "patch");
+            }
         }
 
         foreach (var (tag, operations) in tags) {
@@ -84,8 +98,12 @@ public static class TypeScriptGenerator {
     private static void Add(Dictionary<string, List<(string, Operation, string, string)>> dict, Operation op, string path, string method) {
         var tag = op.Tags.FirstOrDefault() ?? "Default";
         var id = $"{method}_{Regex.Replace(path.Trim('/'), "[^a-zA-Z0-9]", "_")}";
-        if (!dict.ContainsKey(tag)) dict[tag] = new();
-        dict[tag].Add((id, op, path, method));
+        if (!dict.TryGetValue(tag, out var value)) {
+            value = [];
+            dict[tag] = value;
+        }
+
+        value.Add((id, op, path, method));
     }
 
     private static string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
@@ -120,8 +138,9 @@ public static class TypeScriptGenerator {
             : "any";
 
         var nullable = s.Nullable == true;
-        if (s.Enum is { Count: > 0 })
+        if (s.Enum is { Count: > 0 }) {
             return string.Join(" | ", s.Enum.Select(e => $"\"{e}\"")) + (nullable ? " | null" : "");
+        }
 
         return (nullable ? "null | " : "") + t;
     }
