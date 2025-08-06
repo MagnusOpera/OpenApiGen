@@ -109,7 +109,12 @@ public static class TypeScriptGenerator {
     private static string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
         var sb = new StringBuilder();
         sb.AppendLine("{");
-        if (schema.Type == "array" && schema.Items is not null) {
+
+        if (schema.AnyOf is not null) {
+            sb.Append(' ', indent + 2);
+            var variants = schema.AnyOf.Select((variant, i) => MapSchemaType(indent + 2, variant));
+            sb.AppendLine($"  value: {string.Join(" | ", variants)};");
+        } else if (schema.Type == "array" && schema.Items is not null) {
             var itemType = MapSchemaType(indent, schema.Items);
             sb.Append(' ', indent);
             sb.AppendLine($"  items: {itemType}[]");
@@ -128,7 +133,10 @@ public static class TypeScriptGenerator {
     }
 
     private static string MapSchemaType(int indent, Schema s) {
-        var t = s.Ref is not null ? "any"
+        var t =
+            s.AnyOf is not null ? string.Join(" | ", s.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, s.Required)))
+            : s.Ref is not null ? "any"
+            : s.Enum is not null ? string.Join(" | ", s.Enum.Select(e => $"\"{e}\""))
             : s.Type == "string" ? "string"
             : s.Type == "integer" || s.Type == "number" ? "number"
             : s.Type == "boolean" ? "boolean"
@@ -137,10 +145,6 @@ public static class TypeScriptGenerator {
             : "any";
 
         var nullable = s.Nullable == true;
-        if (s.Enum is { Count: > 0 }) {
-            return string.Join(" | ", s.Enum.Select(e => $"\"{e}\"")) + (nullable ? " | null" : "");
-        }
-
         return (nullable ? "null | " : "") + t;
     }
 
