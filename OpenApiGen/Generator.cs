@@ -20,7 +20,6 @@ public static class TypeScriptGenerator {
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("import { AxiosInstance } from \"axios\"");
             sb.AppendLine();
-            var indent = 0;
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
                 var functionName = GenerateFunctionName(path, method);
@@ -29,7 +28,7 @@ public static class TypeScriptGenerator {
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(indent, reqContent.Schema, reqContent.Schema.Required));
+                    sb.AppendLine(GenerateInterfaceBody(0, reqContent.Schema, reqContent.Schema.Required));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -39,7 +38,7 @@ public static class TypeScriptGenerator {
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
                         var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
                         sb.Append($"export interface {resTypeInterface} ");
-                        sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
+                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema, resContent.Schema.Required));
                         if (responseType == "200") {
                             resInterface = resTypeInterface;
                         }
@@ -51,48 +50,20 @@ public static class TypeScriptGenerator {
                     }
                 }
 
-                // if (op.Responses?.Content?.TryGetValue("application/json", out var resContent) == true) {
-                    //     resInterface = $"{GenerateInterfaceName(path, method)}Response";
-                // } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
-                //     reqInterface = "string"
-                // }
-
-
-                // var reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                // var resInterface = $"{GenerateInterfaceName(path, method)}Response";
-
-                // if (method == "get" && op.Parameters is { Count: > 0 }) {
-                // } else if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
-                //     sb.Append($"export interface {reqInterface} ");
-                //     sb.AppendLine(GenerateInterfaceBody(indent, reqContent.Schema, reqContent.Schema.Required));
-                // }
-
-                // if (op.Responses.TryGetValue("200", out var res) &&
-                //     res.Content?.TryGetValue("application/json", out var resContent) == true) {
-                //     sb.Append($"export interface {resInterface} ");
-                //     sb.AppendLine(GenerateInterfaceBody(indent, resContent.Schema, resContent.Schema.Required));
-                // }
-
-                if (method == "get") {
-                    var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(indent, param)}");
-                    var queryArgs = op.Parameters?.Select(ParameterQuery);
-                    var pathQuery = queryArgs is not null ? $"?{string.Join("&", queryArgs)}" : "";
-                    if (!string.IsNullOrEmpty(resInterface)) {
-                        sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise<{resInterface}> {{");
-                        sb.AppendLine($"  const response = await axios.get<{resInterface}>(`{ToTemplateString(path) + pathQuery}`)");
-                        sb.AppendLine($"  return response.data");
-                    } else {
-                        sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}): Promise {{");
-                        sb.AppendLine($"  await axios.get(`{ToTemplateString(path) + pathQuery}`)");
-                    }
-                    sb.AppendLine("}");
-                } else {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance, request: {reqInterface}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(\"{path}\", request)");
+                var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(indent, param)}");
+                var queryArgs = op.Parameters?.Select(ParameterQuery);
+                var pathQuery = queryArgs is not null ? $"?{string.Join("&", queryArgs)}" : "";
+                var request = reqInterface is not null ? $", request: {reqInterface}" : null;
+                var requestArg = reqInterface is not null ? $", request" : null;
+                if (!string.IsNullOrEmpty(resInterface)) {
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}{request}): Promise<{resInterface}> {{");
+                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(`{ToTemplateString(path) + pathQuery}`{requestArg})");
                     sb.AppendLine($"  return response.data");
-                    sb.AppendLine("}");
+                } else {
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}{request}): Promise {{");
+                    sb.AppendLine($"  await axios.{method}(`{ToTemplateString(path) + pathQuery}`{requestArg})");
                 }
-
+                sb.AppendLine("}");
                 sb.AppendLine();
             }
 
