@@ -39,10 +39,14 @@ public static class TypeScriptGenerator {
                 var functionName = GenerateFunctionName(path, method);
 
                 string? reqInterface = null;
-                if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqContent) == true) {
+                if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqContent.Schema, reqContent.Schema.Required));
+                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema, reqJsonContent.Schema.Required));
+                } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
+                    reqInterface = $"{GenerateInterfaceName(path, method)}Request";
+                    sb.Append($"export interface {reqInterface} ");
+                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema, reqMultipartContent.Schema.Required));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -138,7 +142,7 @@ public static class TypeScriptGenerator {
             s.AnyOf is not null ? string.Join(" | ", s.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, s.Required)))
             : s.Ref is not null ? "any"
             : s.Enum is not null ? string.Join(" | ", s.Enum.Select(e => $"\"{e}\""))
-            : s.Type == "string" ? "string"
+            : s.Type == "string" ? (s.Format is null ? "string" : "File")
             : s.Type == "integer" || s.Type == "number" ? "number"
             : s.Type == "boolean" ? "boolean"
             : s.Type == "array" ? $"{MapSchemaType(indent, s.Items ?? new Schema { Type = "any" })}[]"

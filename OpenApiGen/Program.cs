@@ -7,7 +7,8 @@
 public static class Program {
     private static void Main(string[] args) {
         // var filename = "FundApi-Polymorphic.json";
-        var filename = "FundApi.json";
+        var filename = "FundApi-Multipart.json";
+        // var filename = "FundApi.json";
 
         var content = File.ReadAllText(filename);
         var def = Json.Deserialize<OpenApiDocument>(content);
