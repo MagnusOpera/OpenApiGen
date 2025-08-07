@@ -185,8 +185,8 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             return $"shared_schemas.{knownSchema}";
         }
 
-        string? buildAnyOf() {
-            var variants = string.Join(" | ", schema.AnyOf.Select(variant => {
+        string? buildAnyOf(List<Schema> anyOf) {
+            var variants = string.Join(" | ", anyOf.Select(variant => {
                 var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
                 return GenerateInterfaceBody(indent + indentation_size, variantWithRequired);
             }));
@@ -194,9 +194,16 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             return $"({variants})";
         }
 
+        string? buildRef(string compRef) {
+            var componentName = compRef.Split("/").Last();
+            var compSchema = components[componentName];
+            var compSchemaWithRequired = compSchema with { Required = [.. schema.Required ?? [], .. compSchema.Required ?? []] };
+            return MapSchemaType(indent, compSchemaWithRequired);
+        }
+
         var t =
-            schema.AnyOf is not null ? buildAnyOf()
-            : schema.Ref?.StartsWith("#/components/schemas/") == true ? MapSchemaType(indent, components[schema.Ref.Split("/").Last()])
+            schema.AnyOf is not null ? buildAnyOf(schema.AnyOf)
+            : schema.Ref is not null ? buildRef(schema.Ref)
             : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
             : schema.Type == "string" && schema.Format == "binary" ? "File"
             : schema.Type == "string" ? "string"
