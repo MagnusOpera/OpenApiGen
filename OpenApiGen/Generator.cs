@@ -13,7 +13,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
-    }        
+    }
 
 
     public void Generate(OpenApiDocument document, string outputPath) {
@@ -56,7 +56,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 string? reqInterface = null;
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                    sb.Append($"export type = {reqInterface} = ");
+                    sb.Append($"export type {reqInterface} = ");
                     sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
@@ -136,7 +136,10 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             sb.AppendLine("{");
             if (schema.AnyOf is not null) {
                 sb.Append(' ', indent + 2);
-                var variants = schema.AnyOf.Select((variant, i) => MapSchemaType(indent + 2, variant));
+                var variants = schema.AnyOf.Select(variant => {
+                    var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
+                    return MapSchemaType(indent + 2, variantWithRequired);
+                });
                 sb.AppendLine($"  value: {string.Join(" | ", variants)};");
             } else if (schema.Type == "array") {
                 var itemType = MapSchemaType(indent, schema.Items!);
@@ -154,7 +157,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             sb.Append(' ', indent);
             sb.Append('}');
         }
-    
+
         return sb.ToString();
     }
 
@@ -182,8 +185,15 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             return $"shared_schemas.{knownSchema}";
         }
 
+        string? buildAnyOf() {
+            return "(" + string.Join(" | ", schema.AnyOf.Select(subSchema => {
+                var variantWithRequired = subSchema with { Required = [.. schema.Required ?? [], .. subSchema.Required ?? []] };
+                return GenerateInterfaceBody(indent + 2, variantWithRequired);
+            })) + ")";
+        }
+
         var t =
-            schema.AnyOf is not null ? "(" + string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema))) + ")"
+            schema.AnyOf is not null ? buildAnyOf()
             : schema.Ref?.StartsWith("#/components/schemas/") == true ? MapSchemaType(indent, components[schema.Ref.Split("/").Last()])
             : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
             : schema.Type == "string" && schema.Format == "binary" ? "File"
