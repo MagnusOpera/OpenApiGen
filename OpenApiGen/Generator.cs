@@ -56,22 +56,12 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 string? reqInterface = null;
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                    var reqGlobalSchema = GetGlobalSchema(reqJsonContent.Schema);
-                    if (reqGlobalSchema is not null) {
-                        sb.AppendLine($"export type {reqInterface} = shared_schemas.{reqGlobalSchema}");
-                    } else {
-                        sb.Append($"export interface {reqInterface} ");
-                        sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
-                    }
+                    sb.Append($"export type = {reqInterface} = ");
+                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                    var reqGlobalSchema = GetGlobalSchema(reqMultipartContent.Schema);
-                    if (reqGlobalSchema is not null) {
-                        sb.AppendLine($"export type {reqInterface} = shared_schemas.{reqGlobalSchema}");
-                    } else {
-                        sb.Append($"export interface {reqInterface} ");
-                        sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
-                    }
+                    sb.Append($"export type {reqInterface} = ");
+                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -82,13 +72,8 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
-                        var resGlobalSchema = GetGlobalSchema(resContent.Schema);
-                        if (resGlobalSchema is not null) {
-                            sb.AppendLine($"export type {resTypeInterface} = shared_schemas.{resGlobalSchema}");
-                        } else {
-                            sb.Append($"export interface {resTypeInterface} ");
-                            sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
-                        }
+                        sb.Append($"export type {resTypeInterface} = ");
+                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
