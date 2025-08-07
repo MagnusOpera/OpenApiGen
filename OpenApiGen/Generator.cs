@@ -141,7 +141,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             if (schema.AnyOf is not null) {
                 var variants = schema.AnyOf.Select(variant => {
                     var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
-                    return MapSchemaType(indent, variantWithRequired);
+                    return MapSchemaType(indent + indentation_size, variantWithRequired);
                 });
                 sb.AppendLine($"({string.Join(" | ", variants)})");
             } else if (schema.Properties is not null) {
@@ -188,7 +188,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         string? buildAnyOf() {
             var variants = string.Join(" | ", schema.AnyOf.Select(variant => {
                 var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
-                return GenerateInterfaceBody(indent, variantWithRequired);
+                return GenerateInterfaceBody(indent + indentation_size, variantWithRequired);
             }));
 
             return $"({variants})";
