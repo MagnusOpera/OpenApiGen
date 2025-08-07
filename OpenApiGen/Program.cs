@@ -19,10 +19,10 @@ public static class Program {
         // var filename = "FundApi-Multipart.json";
         // var filename = "FundApi.json";
 
-        var content = File.ReadAllText(openapiFile);
-        var def = Json.Deserialize<OpenApiDocument>(content);
+        var apiDefJson = File.ReadAllText(openapiFile);
+        var apiDef = Json.Deserialize<OpenApiDocument>(apiDefJson);
 
-        var newContent = Json.Serialize(def);
+        var newContent = Json.Serialize(apiDef);
         File.WriteAllText("FundApi-out.json", newContent);
 
         if (Directory.Exists(outputDir)) {
@@ -32,11 +32,11 @@ public static class Program {
 
 
         // read configuration
-        var configurationContent = File.ReadAllText(configurationFile);
-        var configuration = Json.Deserialize<Configuration>(configurationContent);
+        var configJson = File.ReadAllText(configurationFile);
+        var config = Json.Deserialize<Configuration>(configJson);
 
-        var generator = new TypeScriptGenerator(configuration.SharedSchemas);
-        generator.Generate(def, outputDir);
+        var generator = new TypeScriptGenerator(config.SharedSchemas, apiDef.Components?.Schemas ?? []);
+        generator.Generate(apiDef, outputDir);
         return 0;
     }
 }

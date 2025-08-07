@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiGen;
 
-public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
+public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dictionary<string, Schema> components) {
 
     private void GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
@@ -129,27 +129,32 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
 
     private string RawGenerateInterfaceBody(int indent, Schema schema) {
         var sb = new StringBuilder();
-        sb.AppendLine("{");
-
-        if (schema.AnyOf is not null) {
-            sb.Append(' ', indent + 2);
-            var variants = schema.AnyOf.Select((variant, i) => MapSchemaType(indent + 2, variant));
-            sb.AppendLine($"  value: {string.Join(" | ", variants)};");
-        } else if (schema.Type == "array") {
-            var itemType = MapSchemaType(indent, schema.Items!);
-            sb.Append(' ', indent);
-            sb.AppendLine($"  items: {itemType}[]");
-        } else if (schema.Properties is not null) {
-            foreach (var (name, prop) in schema.Properties) {
-                var isRequired = schema.Required?.Contains(name) == true;
-                var optional = isRequired ? "" : "?";
-                var type = MapSchemaType(indent, prop);
+        if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
+            var refSchema = GenerateInterfaceBody(indent, components[schema.Ref.Split("/").Last()]);
+            sb.AppendLine(refSchema);
+        } else {
+            sb.AppendLine("{");
+            if (schema.AnyOf is not null) {
+                sb.Append(' ', indent + 2);
+                var variants = schema.AnyOf.Select((variant, i) => MapSchemaType(indent + 2, variant));
+                sb.AppendLine($"  value: {string.Join(" | ", variants)};");
+            } else if (schema.Type == "array") {
+                var itemType = MapSchemaType(indent, schema.Items!);
                 sb.Append(' ', indent);
-                sb.AppendLine($"  {name}{optional}: {type}");
+                sb.AppendLine($"  items: {itemType}[]");
+            } else if (schema.Properties is not null) {
+                foreach (var (name, prop) in schema.Properties) {
+                    var isRequired = schema.Required?.Contains(name) == true;
+                    var optional = isRequired ? "" : "?";
+                    var type = MapSchemaType(indent, prop);
+                    sb.Append(' ', indent);
+                    sb.AppendLine($"  {name}{optional}: {type}");
+                }
             }
+            sb.Append(' ', indent);
+            sb.Append('}');
         }
-        sb.Append(' ', indent);
-        sb.Append('}');
+    
         return sb.ToString();
     }
 
@@ -169,8 +174,8 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
         }
 
         var t =
-            schema.AnyOf is not null ? string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema)))
-            : schema.Ref is not null ? "any"
+            schema.AnyOf is not null ? "(" + string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema))) + ")"
+            : schema.Ref?.StartsWith("#/components/schemas/") == true ? MapSchemaType(indent, components[schema.Ref.Split("/").Last()])
             : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
             : schema.Type == "string" && schema.Format == "binary" ? "File"
             : schema.Type == "string" ? "string"

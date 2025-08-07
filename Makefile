@@ -5,4 +5,4 @@ build:
 
 
 run:
-	dotnet run --project OpenApiGen -- config.json FundApi.json FundApi
+	dotnet run --project OpenApiGen -- config.json Examples/RawFundApi.json RawFundApi

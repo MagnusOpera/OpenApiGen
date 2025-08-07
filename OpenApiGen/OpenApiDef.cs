@@ -1,9 +1,16 @@
 
+using System.Text.Json.Serialization;
+
 namespace OpenApiGen;
 
 
 public record OpenApiDocument {
     public required Dictionary<string, PathItem> Paths { get; init; }
+    public required Components? Components { get; init; }
+}
+
+public record Components {
+    public required Dictionary<string, Schema> Schemas { get; init; }
 }
 
 public record PathItem {
@@ -49,7 +56,7 @@ public record Schema {
     public Dictionary<string, Schema>? Properties { get; init; }
     public Schema? Items { get; init; }
     public List<Schema>? AnyOf { get; init; }
-    public string? Ref { get; init; }
+    [JsonPropertyName("$ref")] public string? Ref { get; init; }
     public List<string>? Enum { get; init; }
     public Discriminator? Discriminator { get; init; }
     public bool? Nullable { get; init; }
