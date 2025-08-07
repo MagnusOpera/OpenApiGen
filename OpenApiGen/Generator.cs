@@ -141,7 +141,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             } else if (schema.Type == "array") {
                 var itemType = MapSchemaType(indent, schema.Items!);
                 sb.Append(' ', indent);
-                sb.AppendLine($"  items: {itemType}[]");
+                sb.AppendLine($"  items: Array<{itemType}>");
             } else if (schema.Properties is not null) {
                 foreach (var (name, prop) in schema.Properties) {
                     var isRequired = schema.Required?.Contains(name) == true;
@@ -181,7 +181,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             : schema.Type == "string" ? "string"
             : schema.Type == "integer" || schema.Type == "number" ? "number"
             : schema.Type == "boolean" ? "boolean"
-            : schema.Type == "array" ? $"{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}[]"
+            : schema.Type == "array" ? $"Array<{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}>"
             : schema.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, schema)}"
             : "any";
 

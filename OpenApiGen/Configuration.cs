@@ -3,6 +3,6 @@ namespace OpenApiGen;
 
 
 public record Configuration {
-    public required Dictionary<string, Schema> SharedSchemas { get; init; } = [];
+    public Dictionary<string, Schema>? SharedSchemas { get; init; }
 }
 
