@@ -5,11 +5,13 @@ namespace OpenApiGen;
 
 public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dictionary<string, Schema> components) {
 
+    private const int indentation_size = 4;
+
     private void GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
         foreach (var (name, schema) in sharedSchemas) {
             sb.Append($"export interface {name} ");
-            sb.AppendLine(RawGenerateInterfaceBody(0, schema));
+            sb.AppendLine(RawGenerateInterfaceBody(indentation_size, schema));
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
@@ -57,11 +59,11 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
+                    sb.AppendLine(GenerateInterfaceBody(indentation_size, reqJsonContent.Schema));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
+                    sb.AppendLine(GenerateInterfaceBody(indentation_size, reqMultipartContent.Schema));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -73,7 +75,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export type {resTypeInterface} = ");
-                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
+                        sb.AppendLine(GenerateInterfaceBody(indentation_size, resContent.Schema));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -141,7 +143,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
                     return MapSchemaType(indent, variantWithRequired);
                 });
-                sb.AppendLine($"  ({string.Join(" | ", variants)})");
+                sb.AppendLine($"({string.Join(" | ", variants)})");
             } else if (schema.Properties is not null) {
                 sb.AppendLine("{");
                 foreach (var (name, prop) in schema.Properties) {
@@ -149,9 +151,9 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     var optional = isRequired ? "" : "?";
                     var type = MapSchemaType(indent, prop);
                     sb.Append(' ', indent);
-                    sb.AppendLine($"  {name}{optional}: {type}");
+                    sb.AppendLine($"{name}{optional}: {type}");
                 }
-                sb.Append(' ', indent);
+                sb.Append(' ', indent - indentation_size);
                 sb.Append('}');
             }
         }
@@ -201,7 +203,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             : schema.Type == "integer" || schema.Type == "number" ? "number"
             : schema.Type == "boolean" ? "boolean"
             : schema.Type == "array" ? $"Array<{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}>"
-            : schema.Properties is not null ? $"{GenerateInterfaceBody(indent + 2, schema)}"
+            : schema.Properties is not null ? $"{GenerateInterfaceBody(indent + indentation_size, schema)}"
             : "any";
 
         var nullable = schema.Nullable == true;
