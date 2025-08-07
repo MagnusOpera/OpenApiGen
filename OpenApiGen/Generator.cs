@@ -156,6 +156,8 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 }
                 sb.Append(' ', indent - indentation_size);
                 sb.Append('}');
+            } else {
+                return schema.Type ?? "void";
             }
         }
 
