@@ -15,26 +15,20 @@ public static class Program {
         var openapiFile = args[1];
         var outputDir = args[2];
 
-        // var filename = "FundApi-Polymorphic.json";
-        // var filename = "FundApi-Multipart.json";
-        // var filename = "FundApi.json";
+        // read configuration
+        var configJson = File.ReadAllText(configurationFile);
+        var config = Json.Deserialize<Configuration>(configJson);
 
+        // read api def
         var apiDefJson = File.ReadAllText(openapiFile);
         var apiDef = Json.Deserialize<OpenApiDocument>(apiDefJson);
-
-        var newContent = Json.Serialize(apiDef);
-        File.WriteAllText("FundApi-out.json", newContent);
 
         if (Directory.Exists(outputDir)) {
             Directory.Delete(outputDir, true);
         }
         Directory.CreateDirectory(outputDir);
 
-
-        // read configuration
-        var configJson = File.ReadAllText(configurationFile);
-        var config = Json.Deserialize<Configuration>(configJson);
-
+        // generate api
         var generator = new TypeScriptGenerator(config.SharedSchemas ?? [], apiDef.Components?.Schemas ?? []);
         generator.Generate(apiDef, outputDir);
         return 0;
