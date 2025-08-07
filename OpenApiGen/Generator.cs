@@ -48,6 +48,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         foreach (var (tag, operations) in tags) {
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
+            sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
             sb.AppendLine("import type { AxiosInstance } from \"axios\"");
             sb.AppendLine("import type * as shared_schemas from \"./__shared_schemas__\"");
             sb.AppendLine();
