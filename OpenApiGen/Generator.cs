@@ -56,12 +56,22 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 string? reqInterface = null;
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                    sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
+                    var reqGlobalSchema = GetGlobalSchema(reqJsonContent.Schema);
+                    if (reqGlobalSchema is not null) {
+                        sb.AppendLine($"export type {reqInterface} = shared_schemas.{reqGlobalSchema}");
+                    } else {
+                        sb.Append($"export interface {reqInterface} ");
+                        sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
+                    }
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
-                    sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
+                    var reqGlobalSchema = GetGlobalSchema(reqMultipartContent.Schema);
+                    if (reqGlobalSchema is not null) {
+                        sb.AppendLine($"export type {reqInterface} = shared_schemas.{reqGlobalSchema}");
+                    } else {
+                        sb.Append($"export interface {reqInterface} ");
+                        sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
+                    }
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -72,8 +82,13 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
-                        sb.Append($"export interface {resTypeInterface} ");
-                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
+                        var resGlobalSchema = GetGlobalSchema(resContent.Schema);
+                        if (resGlobalSchema is not null) {
+                            sb.AppendLine($"export type {resTypeInterface} = shared_schemas.{resGlobalSchema}");
+                        } else {
+                            sb.Append($"export interface {resTypeInterface} ");
+                            sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
+                        }
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -158,8 +173,17 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         return sb.ToString();
     }
 
-    private string GenerateInterfaceBody(int indent, Schema schema) {
+    private string? GetGlobalSchema(Schema schema) {
+        if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
+            return GetGlobalSchema(components[schema.Ref.Split("/").Last()]);
+        }
+
         var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
+        return knownSchema;
+    }
+
+    private string GenerateInterfaceBody(int indent, Schema schema) {
+        var knownSchema = GetGlobalSchema(schema);
         if (knownSchema is not null) {
             return $"shared_schemas.{knownSchema}";
         }
