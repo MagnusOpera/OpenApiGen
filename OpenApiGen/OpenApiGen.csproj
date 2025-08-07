@@ -22,10 +22,10 @@
 
   <PropertyGroup>
     <!-- https://docs.microsoft.com/en-us/nuget/reference/msbuild-targets#packing-using-a-nuspec -->
-    <PackageId>MagnusOpera.OpenAPIGen</PackageId>
+    <PackageId>MagnusOpera.OpenApiGen</PackageId>
     <Authors>Pierre Chalamet</Authors>
     <Title>OpenAPIGen</Title>
-    <Description>OpenAPIGen</Description>
+    <Description>OpenApiGen</Description>
     <Copyright>Copyright 2025-present Magnus Opera</Copyright>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/magnusopera/openapigen</PackageProjectUrl>

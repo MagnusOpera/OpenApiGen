@@ -1,0 +1,56 @@
+name: build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.300
+
+      - name: Set version variable
+        run: |
+          if [[ '${{ github.ref_type }}' == 'tag' ]]; then
+            echo "NUGET_VERSION=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_ENV
+          else
+            echo "NUGET_VERSION=0.0.0" >> $GITHUB_ENV
+          fi
+
+      - name: Info
+        run: echo 'Building ${{ github.ref }} with version ${{ env.NUGET_VERSION }}'
+
+      - uses: actions/checkout@v4
+
+      - name: Pack
+        run: make pack config=Release version=${{ env.NUGET_VERSION }} 
+
+      - name: Upload NuGet
+        uses: actions/upload-artifact@v4
+        with:
+          path: .out
+          name: nugets
+
+  publish:
+    if: github.ref_type == 'tag'
+    environment: publish
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Info
+        run: echo 'Building ${{ github.ref }}'
+
+      - uses: actions/checkout@v4
+
+      - name: Download NuGet
+        uses: actions/download-artifact@v4
+        with:
+          name: nugets
+          path: .out
+
+      - name: Publish NuGet
+        run: make publish nugetkey=${{secrets.NUGET_KEY}}
