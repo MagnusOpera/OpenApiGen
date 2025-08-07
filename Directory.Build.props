@@ -1,0 +1,13 @@
+<Project>
+    <PropertyGroup>
+        <Deterministic>true</Deterministic>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <VSTestLogger>trx</VSTestLogger>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <DebugType>embedded</DebugType>
+        <RuntimeIdentifiers>win-x64;osx-x64;osx-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>
+    </PropertyGroup>
+</Project>

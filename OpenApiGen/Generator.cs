@@ -3,8 +3,22 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiGen;
 
-public static class TypeScriptGenerator {
-    public static void Generate(OpenApiDocument document, string outputPath) {
+public class TypeScriptGenerator(Dictionary<string, Schema> knownSchemas) {
+
+    private void GenerateGlobalTypes(string outputPath) {
+        var sb = new StringBuilder();
+        foreach (var (name, schema) in knownSchemas) {
+            sb.Append($"export interface {name} ");
+            sb.AppendLine(RawGenerateInterfaceBody(0, schema, schema.Required));
+        }
+        var outputFilename = Path.Combine(outputPath, "__api_types__.ts");
+        File.WriteAllText(outputFilename, sb.ToString());
+    }        
+
+
+    public void Generate(OpenApiDocument document, string outputPath) {
+        GenerateGlobalTypes(outputPath);
+
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
 
         foreach (var (path, pathItem) in document.Paths) {
@@ -33,6 +47,7 @@ public static class TypeScriptGenerator {
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("import { AxiosInstance } from \"axios\"");
+            sb.AppendLine("import * as api_types from \"./__api_types__\"");
             sb.AppendLine();
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
@@ -89,7 +104,7 @@ public static class TypeScriptGenerator {
         }
     }
 
-    private static string ParameterPrototype(Parameter param) {
+    private string ParameterPrototype(Parameter param) {
         var tsType = MapSchemaType(0, param.Schema);
         var optional = param.Required != true ? "?" : "";
         return $"{param.Name}{optional}: {tsType}";
@@ -111,7 +126,8 @@ public static class TypeScriptGenerator {
         value.Add((id, op, path, method));
     }
 
-    private static string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
+
+    private string RawGenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
         var sb = new StringBuilder();
         sb.AppendLine("{");
 
@@ -137,20 +153,34 @@ public static class TypeScriptGenerator {
         return sb.ToString();
     }
 
-    private static string MapSchemaType(int indent, Schema s) {
+    private string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
+        var knownSchema = knownSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
+        if (knownSchema is not null) {
+            return $"api_types.{knownSchema}";
+        }
+
+        return RawGenerateInterfaceBody(indent, schema, required);
+    }
+
+    private string MapSchemaType(int indent, Schema schema) {
+        var knownSchema = knownSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
+        if (knownSchema is not null) {
+            return $"api_types.{knownSchema}";
+        }
+
         var t =
-            s.AnyOf is not null ? string.Join(" | ", s.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, s.Required)))
-            : s.Ref is not null ? "any"
-            : s.Enum is not null ? string.Join(" | ", s.Enum.Select(e => $"\"{e}\""))
-            : s.Type == "string" && s.Format == "binary" ? "File"
-            : s.Type == "string" ? "string"
-            : s.Type == "integer" || s.Type == "number" ? "number"
-            : s.Type == "boolean" ? "boolean"
-            : s.Type == "array" ? $"{MapSchemaType(indent, s.Items ?? new Schema { Type = "any" })}[]"
-            : s.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, s, s.Required)}"
+            schema.AnyOf is not null ? string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, schema.Required)))
+            : schema.Ref is not null ? "any"
+            : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
+            : schema.Type == "string" && schema.Format == "binary" ? "File"
+            : schema.Type == "string" ? "string"
+            : schema.Type == "integer" || schema.Type == "number" ? "number"
+            : schema.Type == "boolean" ? "boolean"
+            : schema.Type == "array" ? $"{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}[]"
+            : schema.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, schema, schema.Required)}"
             : "any";
 
-        var nullable = s.Nullable == true;
+        var nullable = schema.Nullable == true;
         return (nullable ? "null | " : "") + t;
     }
 
