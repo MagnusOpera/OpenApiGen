@@ -35,7 +35,7 @@ public static class Program {
         var configurationContent = File.ReadAllText(configurationFile);
         var configuration = Json.Deserialize<Configuration>(configurationContent);
 
-        var generator = new TypeScriptGenerator(configuration.Schemas);
+        var generator = new TypeScriptGenerator(configuration.SharedSchemas);
         generator.Generate(def, outputDir);
         return 0;
     }

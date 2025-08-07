@@ -3,15 +3,15 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiGen;
 
-public class TypeScriptGenerator(Dictionary<string, Schema> knownSchemas) {
+public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
 
     private void GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
-        foreach (var (name, schema) in knownSchemas) {
+        foreach (var (name, schema) in sharedSchemas) {
             sb.Append($"export interface {name} ");
             sb.AppendLine(RawGenerateInterfaceBody(0, schema, schema.Required));
         }
-        var outputFilename = Path.Combine(outputPath, "__api_types__.ts");
+        var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
     }        
 
@@ -47,7 +47,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> knownSchemas) {
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("import { AxiosInstance } from \"axios\"");
-            sb.AppendLine("import * as api_types from \"./__api_types__\"");
+            sb.AppendLine("import * as shared_schemas from \"./__shared_schemas__\"");
             sb.AppendLine();
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
@@ -154,18 +154,18 @@ public class TypeScriptGenerator(Dictionary<string, Schema> knownSchemas) {
     }
 
     private string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
-        var knownSchema = knownSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
+        var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
         if (knownSchema is not null) {
-            return $"api_types.{knownSchema}";
+            return $"shared_schemas.{knownSchema}";
         }
 
         return RawGenerateInterfaceBody(indent, schema, required);
     }
 
     private string MapSchemaType(int indent, Schema schema) {
-        var knownSchema = knownSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
+        var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
         if (knownSchema is not null) {
-            return $"api_types.{knownSchema}";
+            return $"shared_schemas.{knownSchema}";
         }
 
         var t =
