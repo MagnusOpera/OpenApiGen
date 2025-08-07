@@ -132,6 +132,10 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
             var refSchema = GenerateInterfaceBody(indent, components[schema.Ref.Split("/").Last()]);
             sb.Append(refSchema);
+        } else if (schema.Type == "array") {
+            var itemType = MapSchemaType(indent, schema.Items!);
+            sb.Append(' ', indent);
+            sb.AppendLine($"Array<{itemType}>");
         } else {
             sb.AppendLine("{");
             if (schema.AnyOf is not null) {
@@ -141,10 +145,6 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     return MapSchemaType(indent + 2, variantWithRequired);
                 });
                 sb.AppendLine($"  value: {string.Join(" | ", variants)};");
-            } else if (schema.Type == "array") {
-                var itemType = MapSchemaType(indent, schema.Items!);
-                sb.Append(' ', indent);
-                sb.AppendLine($"  items: Array<{itemType}>");
             } else if (schema.Properties is not null) {
                 foreach (var (name, prop) in schema.Properties) {
                     var isRequired = schema.Required?.Contains(name) == true;
@@ -226,6 +226,6 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
     private static string Capitalize(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
-    public static string ToTemplateString(string path) =>
+    private static string ToTemplateString(string path) =>
         Regex.Replace(path, @"\{([^\}]+)\}", @"${$1}");
 }
