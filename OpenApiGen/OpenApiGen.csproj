@@ -5,6 +5,34 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>openapigen</ToolCommandName>
+    <AssemblyName>openapigen</AssemblyName>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\LICENSE.md" Pack="true" PackagePath="\">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="MagnusOpera.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- https://docs.microsoft.com/en-us/nuget/reference/msbuild-targets#packing-using-a-nuspec -->
+    <PackageId>MagnusOpera.OpenAPIGen</PackageId>
+    <Authors>Pierre Chalamet</Authors>
+    <Title>OpenAPIGen</Title>
+    <Description>OpenAPIGen</Description>
+    <Copyright>Copyright 2025-present Magnus Opera</Copyright>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/magnusopera/openapigen</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/magnusopera/openapigen.git</RepositoryUrl>
+    <PackageTags>openapi;typescript;dotnet;tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>MagnusOpera.png</PackageIcon>
   </PropertyGroup>
 
 </Project>

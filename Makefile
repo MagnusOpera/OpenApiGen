@@ -1,14 +1,7 @@
-
+version ?= 0.0.0
 
 build:
 	dotnet build OpenApiGen
 
-
-run:
-	dotnet run --project OpenApiGen -- Examples/FundApi.config.json Examples/FundApi.json FundApi
-
-run2:
-	dotnet run --project OpenApiGen -- Examples/FundApi.config.json Examples/FundApiRedocly.json FundApiRedocly
-
-run3:
-	dotnet run --project OpenApiGen -- Examples/FundApi.config.json Examples/FundApiRedoclyPolymorphic.json FundApiRedoclyPolymorphic
+pack:
+	dotnet pack --project OpenAPIGen -c $(config) -p:Version=$(version) -o .out
