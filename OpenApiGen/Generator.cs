@@ -49,7 +49,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("import type { AxiosInstance } from \"axios\"");
-            sb.AppendLine("import * as shared_schemas from \"./__shared_schemas__\"");
+            sb.AppendLine("import type * as shared_schemas from \"./__shared_schemas__\"");
             sb.AppendLine();
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
