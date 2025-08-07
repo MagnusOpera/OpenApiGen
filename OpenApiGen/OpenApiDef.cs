@@ -58,8 +58,13 @@ public record Schema {
 
     public virtual bool Equals(Schema? other)
     {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+        if (other is null) {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other)) {
+            return true;
+        }
 
         return Type == other.Type &&
                Format == other.Format &&
@@ -76,7 +81,6 @@ public record Schema {
 
     public override int GetHashCode()
     {
-        // Be cautious: hash code logic should match equality logic
         var hash = new HashCode();
         hash.Add(Type);
         hash.Add(Format);
@@ -92,10 +96,16 @@ public record Schema {
         return hash.ToHashCode();
     }
 
-    private static bool DeepEquals<K, V>(Dictionary<K, V>? a, Dictionary<K, V>? b)
+    private static bool DeepEquals<TK, TV>(Dictionary<TK, TV>? a, Dictionary<TK, TV>? b)  where TK : notnull
     {
-        if (a is null || b is null) return a == b;
-        if (a.Count != b.Count) return false;
+        if (a is null || b is null) {
+            return a == b;
+        }
+
+        if (a.Count != b.Count) {
+            return false;
+        }
+
         return a.All(pair => b.TryGetValue(pair.Key, out var bv) && Equals(pair.Value, bv));
     }
 
@@ -106,14 +116,21 @@ public record Schema {
 
     private static void AddEnumerableHash<T>(HashCode hash, IEnumerable<T>? values)
     {
-        if (values is null) return;
-        foreach (var v in values)
+        if (values is null) {
+            return;
+        }
+
+        foreach (var v in values) {
             hash.Add(v);
+        }
     }
 
-    private static void AddDictionaryHash<K, V>(HashCode hash, Dictionary<K, V>? dict)
+    private static void AddDictionaryHash<TK, TV>(HashCode hash, Dictionary<TK, TV>? dict) where TK : notnull
     {
-        if (dict is null) return;
+        if (dict is null) {
+            return;
+        }
+
         foreach (var kvp in dict.OrderBy(p => p.Key?.ToString()))
         {
             hash.Add(kvp.Key);

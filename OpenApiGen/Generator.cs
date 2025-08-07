@@ -9,7 +9,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
         var sb = new StringBuilder();
         foreach (var (name, schema) in sharedSchemas) {
             sb.Append($"export interface {name} ");
-            sb.AppendLine(RawGenerateInterfaceBody(0, schema, schema.Required));
+            sb.AppendLine(RawGenerateInterfaceBody(0, schema));
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
@@ -57,11 +57,11 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema, reqJsonContent.Schema.Required));
+                    sb.AppendLine(GenerateInterfaceBody(0, reqJsonContent.Schema));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export interface {reqInterface} ");
-                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema, reqMultipartContent.Schema.Required));
+                    sb.AppendLine(GenerateInterfaceBody(0, reqMultipartContent.Schema));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -73,7 +73,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export interface {resTypeInterface} ");
-                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema, resContent.Schema.Required));
+                        sb.AppendLine(GenerateInterfaceBody(0, resContent.Schema));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -127,7 +127,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
     }
 
 
-    private string RawGenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
+    private string RawGenerateInterfaceBody(int indent, Schema schema) {
         var sb = new StringBuilder();
         sb.AppendLine("{");
 
@@ -141,7 +141,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
             sb.AppendLine($"  items: {itemType}[]");
         } else if (schema.Properties is not null) {
             foreach (var (name, prop) in schema.Properties) {
-                var isRequired = required?.Contains(name) == true;
+                var isRequired = schema.Required?.Contains(name) == true;
                 var optional = isRequired ? "" : "?";
                 var type = MapSchemaType(indent, prop);
                 sb.Append(' ', indent);
@@ -153,13 +153,13 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
         return sb.ToString();
     }
 
-    private string GenerateInterfaceBody(int indent, Schema schema, List<string>? required) {
+    private string GenerateInterfaceBody(int indent, Schema schema) {
         var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
         if (knownSchema is not null) {
             return $"shared_schemas.{knownSchema}";
         }
 
-        return RawGenerateInterfaceBody(indent, schema, required);
+        return RawGenerateInterfaceBody(indent, schema);
     }
 
     private string MapSchemaType(int indent, Schema schema) {
@@ -169,7 +169,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
         }
 
         var t =
-            schema.AnyOf is not null ? string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema, schema.Required)))
+            schema.AnyOf is not null ? string.Join(" | ", schema.AnyOf.Select(subSchema => GenerateInterfaceBody(indent + 2, subSchema)))
             : schema.Ref is not null ? "any"
             : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
             : schema.Type == "string" && schema.Format == "binary" ? "File"
@@ -177,7 +177,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas) {
             : schema.Type == "integer" || schema.Type == "number" ? "number"
             : schema.Type == "boolean" ? "boolean"
             : schema.Type == "array" ? $"{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}[]"
-            : schema.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, schema, schema.Required)}"
+            : schema.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, schema)}"
             : "any";
 
         var nullable = schema.Nullable == true;
