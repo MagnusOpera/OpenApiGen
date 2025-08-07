@@ -133,19 +133,17 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             var refSchema = GenerateInterfaceBody(indent, components[schema.Ref.Split("/").Last()]);
             sb.Append(refSchema);
         } else if (schema.Type == "array") {
-            var itemType = MapSchemaType(indent, schema.Items!);
-            sb.Append(' ', indent);
+            var itemType = MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" });
             sb.AppendLine($"Array<{itemType}>");
         } else {
-            sb.AppendLine("{");
             if (schema.AnyOf is not null) {
-                sb.Append(' ', indent + 2);
                 var variants = schema.AnyOf.Select(variant => {
                     var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
-                    return MapSchemaType(indent + 2, variantWithRequired);
+                    return MapSchemaType(indent, variantWithRequired);
                 });
-                sb.AppendLine($"  value: {string.Join(" | ", variants)};");
+                sb.AppendLine($"  ({string.Join(" | ", variants)})");
             } else if (schema.Properties is not null) {
+                sb.AppendLine("{");
                 foreach (var (name, prop) in schema.Properties) {
                     var isRequired = schema.Required?.Contains(name) == true;
                     var optional = isRequired ? "" : "?";
@@ -153,9 +151,9 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     sb.Append(' ', indent);
                     sb.AppendLine($"  {name}{optional}: {type}");
                 }
+                sb.Append(' ', indent);
+                sb.Append('}');
             }
-            sb.Append(' ', indent);
-            sb.Append('}');
         }
 
         return sb.ToString();
@@ -186,10 +184,12 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         }
 
         string? buildAnyOf() {
-            return "(" + string.Join(" | ", schema.AnyOf.Select(subSchema => {
-                var variantWithRequired = subSchema with { Required = [.. schema.Required ?? [], .. subSchema.Required ?? []] };
-                return GenerateInterfaceBody(indent + 2, variantWithRequired);
-            })) + ")";
+            var variants = string.Join(" | ", schema.AnyOf.Select(variant => {
+                var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
+                return GenerateInterfaceBody(indent, variantWithRequired);
+            }));
+
+            return $"({variants})";
         }
 
         var t =
@@ -201,7 +201,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             : schema.Type == "integer" || schema.Type == "number" ? "number"
             : schema.Type == "boolean" ? "boolean"
             : schema.Type == "array" ? $"Array<{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}>"
-            : schema.Type == "object" ? $"{GenerateInterfaceBody(indent + 2, schema)}"
+            : schema.Properties is not null ? $"{GenerateInterfaceBody(indent + 2, schema)}"
             : "any";
 
         var nullable = schema.Nullable == true;

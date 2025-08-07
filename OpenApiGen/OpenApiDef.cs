@@ -6,11 +6,11 @@ namespace OpenApiGen;
 
 public record OpenApiDocument {
     public required Dictionary<string, PathItem> Paths { get; init; }
-    public required Components? Components { get; init; }
+    public Components? Components { get; init; }
 }
 
 public record Components {
-    public required Dictionary<string, Schema> Schemas { get; init; }
+    public Dictionary<string, Schema>? Schemas { get; init; }
 }
 
 public record PathItem {
