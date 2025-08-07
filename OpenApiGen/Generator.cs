@@ -131,7 +131,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         var sb = new StringBuilder();
         if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
             var refSchema = GenerateInterfaceBody(indent, components[schema.Ref.Split("/").Last()]);
-            sb.AppendLine(refSchema);
+            sb.Append(refSchema);
         } else {
             sb.AppendLine("{");
             if (schema.AnyOf is not null) {
