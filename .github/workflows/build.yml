@@ -26,14 +26,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Pack
-        run: |
-          make pack config=Release version=${{ env.NUGET_VERSION }} 
-          ls -lR .out
+        run: make pack config=Release version=${{ env.NUGET_VERSION }} 
 
       - name: Upload NuGet
         uses: actions/upload-artifact@v4
         with:
-          path: .out
+          path: .out/*.nupkg
           name: nugets
 
   publish:
