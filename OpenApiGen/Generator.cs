@@ -97,18 +97,18 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                     }
                 }
 
-                var paramsArg = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
-                var queryArgs = op.Parameters?.Select(ParameterQuery);
-                var pathQuery = queryArgs is not null ? $"?{string.Join("&", queryArgs)}" : "";
-                var request = reqInterface is not null ? $", request: {reqInterface}" : null;
+                var paramArgs = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
+                var queryArgs = op.Parameters?.Where(x => x.In == "query").Select(ParameterQuery);
+                var query = queryArgs?.Any() == true ? $"?{string.Join("&", queryArgs)}" : "";
+                var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
                 var requestArg = reqInterface is not null ? $", request" : null;
                 if (!string.IsNullOrEmpty(resInterface)) {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}{request}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(`{ToTemplateString(path) + pathQuery}`{requestArg})");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
+                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})");
                     sb.AppendLine($"  return response.data");
                 } else {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramsArg}{request}): Promise {{");
-                    sb.AppendLine($"  await axios.{method}(`{ToTemplateString(path) + pathQuery}`{requestArg})");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise {{");
+                    sb.AppendLine($"  await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }
                 sb.AppendLine("}");
                 sb.AppendLine();

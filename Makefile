@@ -1,7 +1,7 @@
 
 
 build:
-	dotnet build
+	dotnet build OpenApiGen
 
 
 run:
