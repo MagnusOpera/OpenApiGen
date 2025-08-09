@@ -29,7 +29,7 @@ public static class Program {
         Directory.CreateDirectory(outputDir);
 
         // generate api
-        var generator = new TypeScriptGenerator(config.SharedSchemas ?? [], apiDef.Components?.Schemas ?? []);
+        var generator = new Generators.TypeScriptAxiosGenerator(config.SharedSchemas ?? [], apiDef.Components?.Schemas ?? []);
         generator.Generate(apiDef, outputDir);
         return 0;
     }

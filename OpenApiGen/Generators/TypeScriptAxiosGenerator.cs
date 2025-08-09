@@ -1,17 +1,20 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace OpenApiGen;
+namespace OpenApiGen.Generators;
 
-public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dictionary<string, Schema> components) {
+public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, Dictionary<string, Schema> components) {
 
-    private const int indentation_size = 4;
+    private const int INDENTATION_SIZE = 4;
 
     private void GenerateGlobalTypes(string outputPath) {
+        Dictionary<string, Schema> sharedSchemasCopy = new(sharedSchemas);
+        sharedSchemas.Clear(); // hack to generate shared schema
+
         var sb = new StringBuilder();
-        foreach (var (name, schema) in sharedSchemas) {
-            sb.Append($"export interface {name} ");
-            sb.AppendLine(RawGenerateInterfaceBody(indentation_size, schema));
+        foreach (var (name, schema) in sharedSchemasCopy) {
+            sb.Append($"export type {name} = ");
+            sb.AppendLine(GenerateType(INDENTATION_SIZE, schema, []));
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
@@ -19,8 +22,6 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
 
 
     public void Generate(OpenApiDocument document, string outputPath) {
-        GenerateGlobalTypes(outputPath);
-
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
 
         foreach (var (path, pathItem) in document.Paths) {
@@ -60,11 +61,11 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateInterfaceBody(indentation_size, reqJsonContent.Schema));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema, []));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateInterfaceBody(indentation_size, reqMultipartContent.Schema));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema, []));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -76,7 +77,7 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export type {resTypeInterface} = ");
-                        sb.AppendLine(GenerateInterfaceBody(indentation_size, resContent.Schema));
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema, []));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -92,11 +93,14 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
                 var requestArg = reqInterface is not null ? $", request" : null;
                 if (!string.IsNullOrEmpty(resInterface)) {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
-                    sb.AppendLine($"  const response = await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})");
-                    sb.AppendLine($"  return response.data");
+                    sb.Append(' ', INDENTATION_SIZE);
+                    sb.AppendLine($"const response = await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})");
+                    sb.Append(' ', INDENTATION_SIZE);
+                    sb.AppendLine($"return response.data");
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise {{");
-                    sb.AppendLine($"  await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
+                    sb.Append(' ', INDENTATION_SIZE);
+                    sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }
                 sb.AppendLine("}");
                 sb.AppendLine();
@@ -105,10 +109,12 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
             var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
             File.WriteAllText(outputFilename, sb.ToString());
         }
+
+        GenerateGlobalTypes(outputPath);
     }
 
     private string ParameterPrototype(Parameter param) {
-        var tsType = MapSchemaType(0, param.Schema);
+        var tsType = GenerateType(0, param.Schema, []);
         var optional = param.Required != true ? "?" : "";
         return $"{param.Name}{optional}: {tsType}";
     }
@@ -129,95 +135,56 @@ public class TypeScriptGenerator(Dictionary<string, Schema> sharedSchemas, Dicti
         value.Add((id, op, path, method));
     }
 
+    private string GenerateType(int indent, Schema schema, string[] composedRequired) {
+        var sharedSchema = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
+        if (sharedSchema is not null) {
+            return $"shared_schemas.{sharedSchema}";
+        }
 
-    private string RawGenerateInterfaceBody(int indent, Schema schema) {
-        var sb = new StringBuilder();
-        if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
-            var refSchema = GenerateInterfaceBody(indent, components[schema.Ref.Split("/").Last()]);
-            sb.Append(refSchema);
-        } else if (schema.Type == "array") {
-            var itemType = MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" });
-            sb.AppendLine($"Array<{itemType}>");
-        } else {
-            if (schema.AnyOf is not null) {
-                var variants = schema.AnyOf.Select(variant => {
-                    var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
-                    return MapSchemaType(indent + indentation_size, variantWithRequired);
-                });
-                sb.AppendLine($"({string.Join(" | ", variants)})");
-            } else if (schema.Properties is not null) {
+        string getType() {
+            if (schema is RefSchema refSchema) {
+                var componentName = refSchema.Ref.Split("/").Last();
+                var compSchema = components[componentName];
+                return GenerateType(indent, compSchema, composedRequired);
+            } else if (schema is ComposedSchema compSchema) {
+                string[] requiredMembers = [.. composedRequired, .. compSchema.Required ?? []];
+                var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
+                    return GenerateType(indent, variant, requiredMembers);
+                }));
+                return $"({variants})";
+            } else if (schema is ArraySchema arrSchema) {
+                return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired)}>";
+            } else if (schema is ObjectSchema objSchema) {
+                var sb = new StringBuilder();
                 sb.AppendLine("{");
-                foreach (var (name, prop) in schema.Properties) {
-                    var isRequired = schema.Required?.Contains(name) == true;
-                    var optional = isRequired ? "" : "?";
-                    var type = MapSchemaType(indent, prop);
+                string[] requiredMembers = [.. composedRequired, .. objSchema.Required ?? []];
+                foreach (var (name, prop) in objSchema.Properties ?? []) {
+                    var optional = requiredMembers.Contains(name) ? "" : "?";
+                    var type = GenerateType(indent + INDENTATION_SIZE, prop, []);
                     sb.Append(' ', indent);
                     sb.AppendLine($"{name}{optional}: {type}");
                 }
-                sb.Append(' ', indent - indentation_size);
+                sb.Append(' ', indent - INDENTATION_SIZE);
                 sb.Append('}');
+                return sb.ToString();
+            } else if (schema is EnumSchema enumSchema) {
+                return string.Join(" | ", enumSchema.Enum.Select(e => $"\"{e}\""));
+            } else if (schema is PrimitiveSchema primSchema) {
+                return (primSchema.Type, primSchema.Format) switch {
+                    ("string", "binary") => "File",
+                    ("string", _) => "string",
+                    ("integer", _) => "number",
+                    ("number", _) => "number",
+                    ("boolean", _) => "boolean",
+                    _ => "any"
+                };
             } else {
-                return schema.Type ?? "void";
+                throw new ApplicationException("Unknown schema type.");
             }
         }
 
-        return sb.ToString();
-    }
-
-    private string? GetGlobalSchema(Schema schema) {
-        if (schema.Ref?.StartsWith("#/components/schemas/") == true) {
-            return GetGlobalSchema(components[schema.Ref.Split("/").Last()]);
-        }
-
-        var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
-        return knownSchema;
-    }
-
-    private string GenerateInterfaceBody(int indent, Schema schema) {
-        var knownSchema = GetGlobalSchema(schema);
-        if (knownSchema is not null) {
-            return $"shared_schemas.{knownSchema}";
-        }
-
-        return RawGenerateInterfaceBody(indent, schema);
-    }
-
-    private string MapSchemaType(int indent, Schema schema) {
-        var knownSchema = sharedSchemas.Where(x => x.Value == schema).Select(x => x.Key).FirstOrDefault();
-        if (knownSchema is not null) {
-            return $"shared_schemas.{knownSchema}";
-        }
-
-        string? buildAnyOf(List<Schema> anyOf) {
-            var variants = string.Join(" | ", anyOf.Select(variant => {
-                var variantWithRequired = variant with { Required = [.. schema.Required ?? [], .. variant.Required ?? []] };
-                return GenerateInterfaceBody(indent + indentation_size, variantWithRequired);
-            }));
-
-            return $"({variants})";
-        }
-
-        string? buildRef(string compRef) {
-            var componentName = compRef.Split("/").Last();
-            var compSchema = components[componentName];
-            var compSchemaWithRequired = compSchema with { Required = [.. schema.Required ?? [], .. compSchema.Required ?? []] };
-            return MapSchemaType(indent, compSchemaWithRequired);
-        }
-
-        var t =
-            schema.AnyOf is not null ? buildAnyOf(schema.AnyOf)
-            : schema.Ref is not null ? buildRef(schema.Ref)
-            : schema.Enum is not null ? string.Join(" | ", schema.Enum.Select(e => $"\"{e}\""))
-            : schema.Type == "string" && schema.Format == "binary" ? "File"
-            : schema.Type == "string" ? "string"
-            : schema.Type == "integer" || schema.Type == "number" ? "number"
-            : schema.Type == "boolean" ? "boolean"
-            : schema.Type == "array" ? $"Array<{MapSchemaType(indent, schema.Items ?? new Schema { Type = "any" })}>"
-            : schema.Properties is not null ? $"{GenerateInterfaceBody(indent + indentation_size, schema)}"
-            : "any";
-
         var nullable = schema.Nullable == true;
-        return (nullable ? "null | " : "") + t;
+        return (nullable ? "null | " : "") + getType();
     }
 
 

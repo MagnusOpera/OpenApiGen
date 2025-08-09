@@ -49,104 +49,64 @@ public record Parameter {
     public required Schema Schema { get; init; }
 }
 
-public record Schema {
-    public string? Type { get; init; }
-    public string? Format { get; init; }
-    public List<string>? Required { get; init; }
-    public Dictionary<string, Schema>? Properties { get; init; }
-    public Schema? Items { get; init; }
-    public List<Schema>? AnyOf { get; init; }
-    [JsonPropertyName("$ref")] public string? Ref { get; init; }
-    public List<string>? Enum { get; init; }
-    public Discriminator? Discriminator { get; init; }
+// public record Schema {
+//     public string? Type { get; init; }
+//     public string? Format { get; init; }
+//     public List<string>? Required { get; init; }
+//     public Dictionary<string, Schema>? Properties { get; init; }
+//     public Schema? Items { get; init; }
+//     public List<Schema>? AnyOf { get; init; }
+//     [JsonPropertyName("$ref")] public string? Ref { get; init; }
+//     public List<string>? Enum { get; init; }
+//     public Discriminator? Discriminator { get; init; }
+//     public bool? Nullable { get; init; }
+//     public object? Default { get; init; }
+// }
+
+// public record Discriminator {
+//     public required string PropertyName { get; init; }
+//     public Dictionary<string, string>? Mapping { get; init; }
+// }
+
+[JsonConverter(typeof(SchemaConverter))]
+public abstract record Schema {
     public bool? Nullable { get; init; }
     public object? Default { get; init; }
-
-
-    public virtual bool Equals(Schema? other)
-    {
-        if (other is null) {
-            return false;
-        }
-
-        if (ReferenceEquals(this, other)) {
-            return true;
-        }
-
-        return Type == other.Type &&
-               Format == other.Format &&
-               Nullable == other.Nullable &&
-               Ref == other.Ref &&
-               Enumerable.SequenceEqual(Required ?? [], other.Required ?? []) &&
-               Enumerable.SequenceEqual(Enum ?? [], other.Enum ?? []) &&
-               DeepEquals(Properties, other.Properties) &&
-               DeepEquals(AnyOf, other.AnyOf) &&
-               Equals(Items, other.Items) &&
-               Equals(Discriminator, other.Discriminator) &&
-               Equals(Default, other.Default);
-    }
-
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(Type);
-        hash.Add(Format);
-        hash.Add(Nullable);
-        hash.Add(Ref);
-        AddEnumerableHash(hash, Required);
-        AddEnumerableHash(hash, Enum);
-        AddDictionaryHash(hash, Properties);
-        AddEnumerableHash(hash, AnyOf);
-        hash.Add(Items);
-        hash.Add(Discriminator);
-        hash.Add(Default);
-        return hash.ToHashCode();
-    }
-
-    private static bool DeepEquals<TK, TV>(Dictionary<TK, TV>? a, Dictionary<TK, TV>? b)  where TK : notnull
-    {
-        if (a is null || b is null) {
-            return a == b;
-        }
-
-        if (a.Count != b.Count) {
-            return false;
-        }
-
-        return a.All(pair => b.TryGetValue(pair.Key, out var bv) && Equals(pair.Value, bv));
-    }
-
-    private static bool DeepEquals<T>(List<T>? a, List<T>? b)
-    {
-        return Enumerable.SequenceEqual(a ?? [], b ?? []);
-    }
-
-    private static void AddEnumerableHash<T>(HashCode hash, IEnumerable<T>? values)
-    {
-        if (values is null) {
-            return;
-        }
-
-        foreach (var v in values) {
-            hash.Add(v);
-        }
-    }
-
-    private static void AddDictionaryHash<TK, TV>(HashCode hash, Dictionary<TK, TV>? dict) where TK : notnull
-    {
-        if (dict is null) {
-            return;
-        }
-
-        foreach (var kvp in dict.OrderBy(p => p.Key?.ToString()))
-        {
-            hash.Add(kvp.Key);
-            hash.Add(kvp.Value);
-        }
-    }
 }
 
-public record Discriminator {
+public sealed record EnumSchema : Schema {
+    public required List<string> Enum { get; init; }
+}
+
+public sealed record RefSchema : Schema {
+    public required string Ref { get; init; }
+}
+
+// Composition (limited): anyOf (+ discriminator)
+public sealed record ComposedSchema : Schema {
+    public required List<Schema> AnyOf { get; init; }
+    public Discriminator? Discriminator { get; init; }
+    public List<string>? Required { get; init; }
+}
+
+public sealed record Discriminator {
     public required string PropertyName { get; init; }
-    public Dictionary<string, string>? Mapping { get; init; }
 }
+
+// Arrays: type: array + items
+public sealed record ArraySchema : Schema {
+    public required Schema Items { get; init; }
+}
+
+// Objects: type: object + properties/required
+public sealed record ObjectSchema : Schema {
+    public Dictionary<string, Schema>? Properties { get; init; }
+    public List<string>? Required { get; init; }
+}
+
+// Primitive types: string | integer | number | boolean
+public sealed record PrimitiveSchema : Schema {
+    public string? Type { get; init; }   // "string", "integer", "number", "boolean"
+    public string? Format { get; init; }         // "date-time", "uuid", etc.
+}
+
