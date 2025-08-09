@@ -79,7 +79,7 @@ public sealed record EnumSchema : Schema {
 }
 
 public sealed record RefSchema : Schema {
-    public required string Ref { get; init; }
+    [JsonPropertyName("$ref")] public required string Ref { get; init; }
 }
 
 public sealed record ArraySchema : Schema {
