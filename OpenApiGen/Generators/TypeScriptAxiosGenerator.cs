@@ -26,25 +26,11 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
         foreach (var (path, pathItem) in document.Paths) {
-            if (pathItem.Get is not null) {
-                Add(tags, pathItem.Get, path, "get");
-            }
-
-            if (pathItem.Post is not null) {
-                Add(tags, pathItem.Post, path, "post");
-            }
-
-            if (pathItem.Put is not null) {
-                Add(tags, pathItem.Put, path, "put");
-            }
-
-            if (pathItem.Delete is not null) {
-                Add(tags, pathItem.Delete, path, "delete");
-            }
-
-            if (pathItem.Patch is not null) {
-                Add(tags, pathItem.Patch, path, "patch");
-            }
+            if (pathItem.Get is not null) Add(tags, pathItem.Get, path, "get");
+            if (pathItem.Post is not null) Add(tags, pathItem.Post, path, "post");
+            if (pathItem.Put is not null) Add(tags, pathItem.Put, path, "put");
+            if (pathItem.Delete is not null) Add(tags, pathItem.Delete, path, "delete");
+            if (pathItem.Patch is not null) Add(tags, pathItem.Patch, path, "patch");
         }
 
         foreach (var (tag, operations) in tags) {
