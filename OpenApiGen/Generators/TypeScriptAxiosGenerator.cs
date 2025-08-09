@@ -135,26 +135,32 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             //       schema is emitted correctly, which appears to be the case.
             var componentName = refSchema.Ref.Split("/").Last();
             var compSchema = components[componentName];
-            if (compSchema.Nullable is not null && compSchema is ObjectSchema compObjSchema) {
-                if (_replacedShemas.TryGetValue(componentName, out var repCompNamec)) {
-                    compSchema = components[repCompNamec] with { Nullable = compSchema.Nullable };
-                } else {
-                    var guessComponentName = GenerateRefName(componentName);
-                    HashSet<string> compRequired = [.. compObjSchema.Required ?? []];
-                    var guessedComponent = components.FirstOrDefault(x => {
-                        if (x.Key.StartsWith(guessComponentName) && x.Value is ObjectSchema guessObjShema) {
-                            HashSet<string> guessRequired = [.. guessObjShema.Required ?? []];
-                            return guessObjShema.Nullable == null && guessRequired.SetEquals(compRequired); // && compProperties.SetEquals(guessProperties);
-                        }
-                        return false;
-                    });
+            // already replaced ?
+            if (_replacedShemas.TryGetValue(componentName, out var repCompNamec)) {
+                compSchema = components[repCompNamec] with { Nullable = compSchema.Nullable };
 
-                    if (guessedComponent.Value is not null && componentName != guessedComponent.Key) {
-                        _replacedShemas[componentName] = guessedComponent.Key;
-                        compSchema = guessedComponent.Value with { Nullable = compSchema.Nullable };
+                // target component has any member ?
+            } else if (compSchema is ObjectSchema compObjSchema
+                && compObjSchema.Properties?.Any(x => (x.Value as PrimitiveSchema)?.Type is null) == true) {
+
+                // try to find another component with same name and members but with types
+                var compMembers = compObjSchema.Properties?.Keys.ToList() ?? [];
+                var candidateName = GenerateRefName(componentName);
+                var candidateComp = components.FirstOrDefault(candidate => {
+                    if (candidate.Key.StartsWith(candidateName) && candidate.Value is ObjectSchema guessObjShema
+                        && compObjSchema.Properties?.All(x => (x.Value as PrimitiveSchema)?.Type is null) == false) {
+                        var guessMembers = guessObjShema.Properties?.Keys.ToList() ?? [];
+                        return compMembers.SequenceEqual(guessMembers);
                     }
+                    return false;
+                });
+
+                if (candidateComp.Value is not null && componentName != candidateComp.Key) {
+                    _replacedShemas[componentName] = candidateComp.Key;
+                    compSchema = candidateComp.Value with { Nullable = compSchema.Nullable };
                 }
             }
+
             return GenerateType(indent, compSchema, composedRequired, composedProperties);
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
