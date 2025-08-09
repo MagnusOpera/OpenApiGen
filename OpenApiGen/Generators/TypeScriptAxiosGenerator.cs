@@ -132,7 +132,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             }));
             return $"({variants})";
         } else if (schema is ArraySchema arrSchema) {
-            return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired, composedProperties)}>";
+            return $"Array<{GenerateType(indent, arrSchema.Items, [], [])}>";
         } else if (schema is ObjectSchema objSchema) {
             var sb = new StringBuilder();
             sb.AppendLine("{");
@@ -169,7 +169,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         type ??= RawGenerateType(indent, schema, composedRequired, composedProperties);
 
         var nullable = schema.Nullable == true;
-        return (nullable ? "null | " : "") + type;
+        return nullable ? $"null | {type}" : type;
     }
 
 
