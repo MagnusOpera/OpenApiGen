@@ -119,63 +119,57 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     }
 
     private string RawGenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
-        string getType() {
-            if (schema is RefSchema refSchema) {
-                var componentName = refSchema.Ref.Split("/").Last();
-                var compSchema = components[componentName];
-                return GenerateType(indent, compSchema, composedRequired, composedProperties);
-            } else if (schema is ComposedSchema compSchema) {
-                string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
-                Dictionary<string, Schema> variantComposedProperties = new(composedProperties);
-                foreach (var kvp in compSchema.Properties ?? []) variantComposedProperties[kvp.Key] = kvp.Value;
-                var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
-                    return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
-                }));
-                return $"({variants})";
-            } else if (schema is ArraySchema arrSchema) {
-                return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired, composedProperties)}>";
-            } else if (schema is ObjectSchema objSchema) {
-                var sb = new StringBuilder();
-                sb.AppendLine("{");
-                string[] required = [.. composedRequired, .. objSchema.Required ?? []];
-                Dictionary<string, Schema> properties = new(composedProperties);
-                foreach (var kvp in objSchema.Properties ?? []) properties[kvp.Key] = kvp.Value;
-                foreach (var (name, prop) in objSchema.Properties ?? []) {
-                    var optional = required.Contains(name) ? "" : "?";
-                    var type = GenerateType(indent + INDENTATION_SIZE, prop, [], []);
-                    sb.Append(' ', indent);
-                    sb.AppendLine($"{name}{optional}: {type}");
-                }
-                sb.Append(' ', indent - INDENTATION_SIZE);
-                sb.Append('}');
-                return sb.ToString();
-            } else if (schema is EnumSchema enumSchema) {
-                return string.Join(" | ", enumSchema.Enum.Select(e => $"\"{e}\""));
-            } else if (schema is PrimitiveSchema primSchema) {
-                return (primSchema.Type, primSchema.Format) switch {
-                    ("string", "binary") => "File",
-                    ("string", _) => "string",
-                    ("integer", _) => "number",
-                    ("number", _) => "number",
-                    ("boolean", _) => "boolean",
-                    _ => "any"
-                };
-            } else {
-                throw new ApplicationException("Unknown schema type.");
+        if (schema is RefSchema refSchema) {
+            var componentName = refSchema.Ref.Split("/").Last();
+            var compSchema = components[componentName];
+            return GenerateType(indent, compSchema, composedRequired, composedProperties);
+        } else if (schema is ComposedSchema compSchema) {
+            string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
+            Dictionary<string, Schema> variantComposedProperties = new(composedProperties);
+            foreach (var kvp in compSchema.Properties ?? []) variantComposedProperties[kvp.Key] = kvp.Value;
+            var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
+                return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
+            }));
+            return $"({variants})";
+        } else if (schema is ArraySchema arrSchema) {
+            return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired, composedProperties)}>";
+        } else if (schema is ObjectSchema objSchema) {
+            var sb = new StringBuilder();
+            sb.AppendLine("{");
+            string[] required = [.. composedRequired, .. objSchema.Required ?? []];
+            Dictionary<string, Schema> properties = new(composedProperties);
+            foreach (var kvp in objSchema.Properties ?? []) properties[kvp.Key] = kvp.Value;
+            foreach (var (name, prop) in objSchema.Properties ?? []) {
+                var optional = required.Contains(name) ? "" : "?";
+                var type = GenerateType(indent + INDENTATION_SIZE, prop, [], []);
+                sb.Append(' ', indent);
+                sb.AppendLine($"{name}{optional}: {type}");
             }
+            sb.Append(' ', indent - INDENTATION_SIZE);
+            sb.Append('}');
+            return sb.ToString();
+        } else if (schema is EnumSchema enumSchema) {
+            return string.Join(" | ", enumSchema.Enum.Select(e => $"\"{e}\""));
+        } else if (schema is PrimitiveSchema primSchema) {
+            return (primSchema.Type, primSchema.Format) switch {
+                ("string", "binary") => "File",
+                ("string", _) => "string",
+                ("integer", _) => "number",
+                ("number", _) => "number",
+                ("boolean", _) => "boolean",
+                _ => "any"
+            };
+        } else {
+            throw new ApplicationException("Unknown schema type.");
         }
-
-        var nullable = schema.Nullable == true;
-        return (nullable ? "null | " : "") + getType();
     }
 
     private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
-        var sharedSchema = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
-        if (sharedSchema is not null) {
-            return sharedSchema;
-        }
+        var type = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
+        type ??= RawGenerateType(indent, schema, composedRequired, composedProperties);
 
-        return RawGenerateType(indent, schema, composedRequired, composedProperties);
+        var nullable = schema.Nullable == true;
+        return (nullable ? "null | " : "") + type;
     }
 
 
