@@ -7,6 +7,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
     private const int INDENTATION_SIZE = 4;
 
+    private readonly Dictionary<string, string> _replacedShemas = [];
+
     private string GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
         foreach (var (name, schema) in sharedSchemas) {
@@ -95,6 +97,10 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
             File.WriteAllText(outputFilename, sb.ToString());
         }
+
+        foreach (var (source, target) in _replacedShemas) {
+            Console.WriteLine($"WARNING: component {source} replaced with {target}");  
+        }
     }
 
     private string ParameterPrototype(Parameter param) {
@@ -130,21 +136,23 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var componentName = refSchema.Ref.Split("/").Last();
             var compSchema = components[componentName];
             if (compSchema.Nullable is not null && compSchema is ObjectSchema compObjSchema) {
-                var guessComponentName = GenerateRefName(componentName);
-                HashSet<string> compRequired = [.. compObjSchema.Required ?? []];
-                var guessedComponent = components.FirstOrDefault(x => {
-                    if (x.Key.StartsWith(guessComponentName) && x.Value is ObjectSchema guessObjShema) {
-                        HashSet<string> guessRequired = [.. guessObjShema.Required ?? []];
-                        return guessObjShema.Nullable == null && guessRequired.SetEquals(compRequired); // && compProperties.SetEquals(guessProperties);
-                    }
+                if (_replacedShemas.TryGetValue(componentName, out var repCompNamec)) {
+                    compSchema = components[repCompNamec] with { Nullable = compSchema.Nullable };
+                } else {
+                    var guessComponentName = GenerateRefName(componentName);
+                    HashSet<string> compRequired = [.. compObjSchema.Required ?? []];
+                    var guessedComponent = components.FirstOrDefault(x => {
+                        if (x.Key.StartsWith(guessComponentName) && x.Value is ObjectSchema guessObjShema) {
+                            HashSet<string> guessRequired = [.. guessObjShema.Required ?? []];
+                            return guessObjShema.Nullable == null && guessRequired.SetEquals(compRequired); // && compProperties.SetEquals(guessProperties);
+                        }
+                        return false;
+                    });
 
-                    return false;
-                });
-                if (guessedComponent.Value is not null && componentName != guessedComponent.Key) {
-                    Console.WriteLine($"WARNING: replacing {componentName} with {guessedComponent.Key}");
-                    // Console.WriteLine(Json.Serialize(compSchema));
-                    // Console.WriteLine(Json.Serialize(guessedComponent.Value));
-                    compSchema = guessedComponent.Value with { Nullable = compSchema.Nullable };
+                    if (guessedComponent.Value is not null && componentName != guessedComponent.Key) {
+                        _replacedShemas[componentName] = guessedComponent.Key;
+                        compSchema = guessedComponent.Value with { Nullable = compSchema.Nullable };
+                    }
                 }
             }
             return GenerateType(indent, compSchema, composedRequired, composedProperties);
