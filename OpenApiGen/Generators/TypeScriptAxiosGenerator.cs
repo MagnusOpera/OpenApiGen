@@ -127,7 +127,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
             var variantComposedProperties = composedProperties.Concat(compSchema.Properties ?? []).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            foreach (var kvp in compSchema.Properties ?? []) variantComposedProperties[kvp.Key] = kvp.Value;
             var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
                 return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
             }));
