@@ -126,7 +126,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             return GenerateType(indent, compSchema, composedRequired, composedProperties);
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
-            var variantComposedProperties = composedProperties.Concat(compSchema.Properties ?? []).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            Dictionary<string, Schema> variantComposedProperties = new([.. composedProperties, .. compSchema.Properties ?? []]);
             var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
                 return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
             }));
@@ -137,7 +137,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var sb = new StringBuilder();
             sb.AppendLine("{");
             string[] required = [.. composedRequired, .. objSchema.Required ?? []];
-            var properties = composedProperties.Concat(objSchema.Properties ?? []).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            Dictionary<string, Schema> properties = new([.. composedProperties, .. objSchema.Properties ?? []]);
             foreach (var (name, prop) in properties) {
                 var optional = required.Contains(name) ? "" : "?";
                 var type = GenerateType(indent + INDENTATION_SIZE, prop, [], []);
