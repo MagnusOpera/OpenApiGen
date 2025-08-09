@@ -10,6 +10,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     private string GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
         foreach (var (name, schema) in sharedSchemas) {
+            if (schema.Nullable is not null) throw new ApplicationException($"Shared type {name} shall not be nullable.");
             sb.Append($"export type {name} = ");
             sb.AppendLine(RawGenerateType(INDENTATION_SIZE, schema, [], []));
         }
@@ -165,7 +166,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     }
 
     private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
-        var type = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
+        var jsonSchema = Json.Serialize(schema with { Nullable = null });
+        var type = sharedSchemas.Where(x => Json.Serialize(x.Value with { Nullable = null }) == jsonSchema).Select(x => x.Key).FirstOrDefault();
         type ??= RawGenerateType(indent, schema, composedRequired, composedProperties);
 
         var nullable = schema.Nullable == true;
