@@ -14,7 +14,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         var sb = new StringBuilder();
         foreach (var (name, schema) in sharedSchemasCopy) {
             sb.Append($"export type {name} = ");
-            sb.AppendLine(GenerateType(INDENTATION_SIZE, schema, []));
+            sb.AppendLine(GenerateType(INDENTATION_SIZE, schema, [], []));
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
@@ -61,11 +61,11 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema, []));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema, [], []));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema, []));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema, [], []));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -77,7 +77,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export type {resTypeInterface} = ");
-                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema, []));
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema, [], []));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -114,7 +114,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     }
 
     private string ParameterPrototype(Parameter param) {
-        var tsType = GenerateType(0, param.Schema, []);
+        var tsType = GenerateType(0, param.Schema, [], []);
         var optional = param.Required != true ? "?" : "";
         return $"{param.Name}{optional}: {tsType}";
     }
@@ -135,7 +135,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         value.Add((id, op, path, method));
     }
 
-    private string GenerateType(int indent, Schema schema, string[] composedRequired) {
+    private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
         var sharedSchema = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
         if (sharedSchema is not null) {
             return $"shared_schemas.{sharedSchema}";
@@ -145,22 +145,26 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             if (schema is RefSchema refSchema) {
                 var componentName = refSchema.Ref.Split("/").Last();
                 var compSchema = components[componentName];
-                return GenerateType(indent, compSchema, composedRequired);
+                return GenerateType(indent, compSchema, composedRequired, composedProperties);
             } else if (schema is ComposedSchema compSchema) {
-                string[] requiredMembers = [.. composedRequired, .. compSchema.Required ?? []];
+                string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
+                Dictionary<string, Schema> variantComposedProperties = new(composedProperties);
+                foreach (var kvp in compSchema.Properties ?? []) variantComposedProperties[kvp.Key] = kvp.Value;
                 var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
-                    return GenerateType(indent, variant, requiredMembers);
+                    return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
                 }));
                 return $"({variants})";
             } else if (schema is ArraySchema arrSchema) {
-                return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired)}>";
+                return $"Array<{GenerateType(indent, arrSchema.Items, composedRequired, composedProperties)}>";
             } else if (schema is ObjectSchema objSchema) {
                 var sb = new StringBuilder();
                 sb.AppendLine("{");
-                string[] requiredMembers = [.. composedRequired, .. objSchema.Required ?? []];
+                string[] required = [.. composedRequired, .. objSchema.Required ?? []];
+                Dictionary<string, Schema> properties = new(composedProperties);
+                foreach (var kvp in objSchema.Properties ?? []) properties[kvp.Key] = kvp.Value;
                 foreach (var (name, prop) in objSchema.Properties ?? []) {
-                    var optional = requiredMembers.Contains(name) ? "" : "?";
-                    var type = GenerateType(indent + INDENTATION_SIZE, prop, []);
+                    var optional = required.Contains(name) ? "" : "?";
+                    var type = GenerateType(indent + INDENTATION_SIZE, prop, [], []);
                     sb.Append(' ', indent);
                     sb.AppendLine($"{name}{optional}: {type}");
                 }

@@ -82,31 +82,26 @@ public sealed record RefSchema : Schema {
     public required string Ref { get; init; }
 }
 
-// Composition (limited): anyOf (+ discriminator)
-public sealed record ComposedSchema : Schema {
+public sealed record ArraySchema : Schema {
+    public required Schema Items { get; init; }
+}
+
+public record ObjectSchema : Schema {
+    public Dictionary<string, Schema>? Properties { get; init; }
+    public List<string>? Required { get; init; }
+}
+
+public sealed record ComposedSchema : ObjectSchema {
     public required List<Schema> AnyOf { get; init; }
     public Discriminator? Discriminator { get; init; }
-    public List<string>? Required { get; init; }
 }
 
 public sealed record Discriminator {
     public required string PropertyName { get; init; }
 }
 
-// Arrays: type: array + items
-public sealed record ArraySchema : Schema {
-    public required Schema Items { get; init; }
-}
-
-// Objects: type: object + properties/required
-public sealed record ObjectSchema : Schema {
-    public Dictionary<string, Schema>? Properties { get; init; }
-    public List<string>? Required { get; init; }
-}
-
-// Primitive types: string | integer | number | boolean
 public sealed record PrimitiveSchema : Schema {
     public string? Type { get; init; }   // "string", "integer", "number", "boolean"
-    public string? Format { get; init; }         // "date-time", "uuid", etc.
+    public string? Format { get; init; } // "date-time", "uuid", etc.
 }
 
