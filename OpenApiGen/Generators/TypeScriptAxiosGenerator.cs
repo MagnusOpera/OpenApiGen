@@ -121,9 +121,17 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
     private string RawGenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
         if (schema is RefSchema refSchema) {
+            // NOTE: Workaround for a bug in Microsoft.Extensions.ApiDescription.Server 9.0.8,
+            //       where nullable types are emitted incorrectly in the OpenAPI definition
+            //       as "any" types. This logic detects the actual main type and then applies
+            //       the intended nullability to it. This assumes the main type itself is
+            //       emitted correctly, which appears to be the case.
             var componentName = refSchema.Ref.Split("/").Last();
             var compSchema = components[componentName];
-            return GenerateType(indent, compSchema, composedRequired, composedProperties);
+            var mainComponentName = GenerateRefName(componentName);
+            var mainCompSchema = components[mainComponentName] with { Nullable = compSchema.Nullable };
+
+            return GenerateType(indent, mainCompSchema, composedRequired, composedProperties);
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
             Dictionary<string, Schema> variantComposedProperties = new([.. composedProperties, .. compSchema.Properties ?? []]);
@@ -186,6 +194,9 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
            .Select(Capitalize);
         return string.Concat(parts) + Capitalize(method);
     }
+
+    private static string GenerateRefName(string name) =>
+        Regex.Replace(name, "[^a-zA-Z]", "");
 
     private static string Capitalize(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
