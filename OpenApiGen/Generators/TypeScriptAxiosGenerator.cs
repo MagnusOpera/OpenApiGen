@@ -122,16 +122,32 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     private string RawGenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
         if (schema is RefSchema refSchema) {
             // NOTE: Workaround for a bug in Microsoft.Extensions.ApiDescription.Server 9.0.8,
-            //       where nullable types are emitted incorrectly in the OpenAPI definition
-            //       as "any" types. This logic detects the actual main type and then applies
-            //       the intended nullability to it. This assumes the main type itself is
-            //       emitted correctly, which appears to be the case.
+            //       where nullable types are incorrectly emitted in the OpenAPI definition
+            //       as having type "any". This heuristic locates an equivalent schema
+            //       without nullability (but with the same required members) and then
+            //       applies the intended nullability to it. It assumes the base, non-nullable
+            //       schema is emitted correctly, which appears to be the case.
             var componentName = refSchema.Ref.Split("/").Last();
             var compSchema = components[componentName];
-            var mainComponentName = GenerateRefName(componentName);
-            var mainCompSchema = components[mainComponentName] with { Nullable = compSchema.Nullable };
+            if (compSchema.Nullable is not null && compSchema is ObjectSchema compObjSchema) {
+                var guessComponentName = GenerateRefName(componentName);
+                HashSet<string> compRequired = [.. compObjSchema.Required ?? []];
+                var guessedComponent = components.FirstOrDefault(x => {
+                    if (x.Key.StartsWith(guessComponentName) && x.Value is ObjectSchema guessObjShema) {
+                        HashSet<string> guessRequired = [.. guessObjShema.Required ?? []];
+                        return guessObjShema.Nullable == null && guessRequired.SetEquals(compRequired); // && compProperties.SetEquals(guessProperties);
+                    }
 
-            return GenerateType(indent, mainCompSchema, composedRequired, composedProperties);
+                    return false;
+                });
+                if (guessedComponent.Value is not null && componentName != guessedComponent.Key) {
+                    Console.WriteLine($"WARNING: replacing {componentName} with {guessedComponent.Key}");
+                    // Console.WriteLine(Json.Serialize(compSchema));
+                    // Console.WriteLine(Json.Serialize(guessedComponent.Value));
+                    compSchema = guessedComponent.Value with { Nullable = compSchema.Nullable };
+                }
+            }
+            return GenerateType(indent, compSchema, composedRequired, composedProperties);
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
             Dictionary<string, Schema> variantComposedProperties = new([.. composedProperties, .. compSchema.Properties ?? []]);
