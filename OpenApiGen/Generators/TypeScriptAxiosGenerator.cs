@@ -131,7 +131,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
                 return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
             }));
-            return $"({variants})";
+            return variants;
         } else if (schema is ArraySchema arrSchema) {
             return $"Array<{GenerateType(indent, arrSchema.Items, [], [])}>";
         } else if (schema is ObjectSchema objSchema) {
