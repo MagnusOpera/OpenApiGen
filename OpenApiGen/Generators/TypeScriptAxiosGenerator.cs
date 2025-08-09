@@ -7,23 +7,24 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
     private const int INDENTATION_SIZE = 4;
 
-    private void GenerateGlobalTypes(string outputPath) {
-        Dictionary<string, Schema> sharedSchemasCopy = new(sharedSchemas);
-        sharedSchemas.Clear(); // hack to generate shared schema
-
+    private string GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
-        foreach (var (name, schema) in sharedSchemasCopy) {
+        foreach (var (name, schema) in sharedSchemas) {
             sb.Append($"export type {name} = ");
-            sb.AppendLine(GenerateType(INDENTATION_SIZE, schema, [], []));
+            sb.AppendLine(RawGenerateType(INDENTATION_SIZE, schema, [], []));
         }
         var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
         File.WriteAllText(outputFilename, sb.ToString());
+
+        var types = string.Join(", ", sharedSchemas.Select(x => x.Key));
+        return $"import type {{ {types} }} from \"./__shared_schemas__\"";
     }
 
 
     public void Generate(OpenApiDocument document, string outputPath) {
-        var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
+        var globalImport = GenerateGlobalTypes(outputPath);
 
+        var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
         foreach (var (path, pathItem) in document.Paths) {
             if (pathItem.Get is not null) {
                 Add(tags, pathItem.Get, path, "get");
@@ -51,7 +52,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
             sb.AppendLine("import type { AxiosInstance } from \"axios\"");
-            sb.AppendLine("import type * as shared_schemas from \"./__shared_schemas__\"");
+            sb.AppendLine(globalImport);
             sb.AppendLine();
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
@@ -109,8 +110,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
             File.WriteAllText(outputFilename, sb.ToString());
         }
-
-        GenerateGlobalTypes(outputPath);
     }
 
     private string ParameterPrototype(Parameter param) {
@@ -135,12 +134,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         value.Add((id, op, path, method));
     }
 
-    private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
-        var sharedSchema = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
-        if (sharedSchema is not null) {
-            return $"shared_schemas.{sharedSchema}";
-        }
-
+    private string RawGenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
         string getType() {
             if (schema is RefSchema refSchema) {
                 var componentName = refSchema.Ref.Split("/").Last();
@@ -189,6 +183,15 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
         var nullable = schema.Nullable == true;
         return (nullable ? "null | " : "") + getType();
+    }
+
+    private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
+        var sharedSchema = sharedSchemas.Where(x => Json.Serialize(x.Value) == Json.Serialize(schema)).Select(x => x.Key).FirstOrDefault();
+        if (sharedSchema is not null) {
+            return sharedSchema;
+        }
+
+        return RawGenerateType(indent, schema, composedRequired, composedProperties);
     }
 
 
