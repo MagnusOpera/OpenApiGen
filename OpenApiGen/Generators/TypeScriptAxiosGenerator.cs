@@ -143,14 +143,15 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             } else if (compSchema is ObjectSchema compObjSchema
                 && compObjSchema.Properties?.Any(x => (x.Value as PrimitiveSchema)?.Type is null) == true) {
 
-                // try to find another component with same name and members but with types
+                // try to find another component with same equivalent name and same members but with types this time
+                // note this can lamely fail of course
                 var compMembers = compObjSchema.Properties?.Keys.ToList() ?? [];
                 var candidateName = GenerateRefName(componentName);
                 var candidateComp = components.FirstOrDefault(candidate => {
-                    if (candidate.Key.StartsWith(candidateName) && candidate.Value is ObjectSchema guessObjShema
-                        && compObjSchema.Properties?.All(x => (x.Value as PrimitiveSchema)?.Type is null) == false) {
-                        var guessMembers = guessObjShema.Properties?.Keys.ToList() ?? [];
-                        return compMembers.SequenceEqual(guessMembers);
+                    if (candidate.Key.StartsWith(candidateName) && candidate.Value is ObjectSchema candidateObjShema
+                        && candidateObjShema.Properties?.All(x => x.Value is PrimitiveSchema { Type: not null } || x.Value is RefSchema) == true) {
+                        var candidateMembers = candidateObjShema.Properties?.Keys.ToList() ?? [];
+                        return candidateMembers.SequenceEqual(compMembers);
                     }
                     return false;
                 });
