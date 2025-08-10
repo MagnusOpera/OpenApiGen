@@ -435,3 +435,4 @@ service-account.json
 *.json
 *.ts
 *.zip
+!Examples/*.json
