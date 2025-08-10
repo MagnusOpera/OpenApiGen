@@ -96,11 +96,11 @@
       },
       "RefUser": {
         "required": [
-          "firstName"
+          "name"
         ],
         "type": "object",
         "properties": {
-          "firstName": {
+          "name": {
             "type": "string"
           }
         }
