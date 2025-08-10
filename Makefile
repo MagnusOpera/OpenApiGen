@@ -7,10 +7,10 @@ build:
 install:
 	npm ci
 
-run:
+gen:
 	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/SampleApi.json generated
 
-run2:
+gen-buggy:
 	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/BuggyApi.json generated
 
 help:
