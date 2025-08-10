@@ -4,6 +4,15 @@ version ?= 0.0.0
 build:
 	dotnet build
 
+install:
+	npm ci
+
+run:
+	dotnet run --project OpenApiGen -- Examples/SampleApi.config.json SampleApi/SampleApi.json generated
+
+help:
+	dotnet run --project OpenApiGen -- --help
+
 pack:
 	dotnet pack -c $(config) -p:Version=$(version) -o .out
 
