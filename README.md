@@ -46,6 +46,10 @@ export async function patchUserId(
 - Inlines types for clarity and simplicity
 - Minimal dependencies, no runtime bloat
 
+## Note on Any Types
+
+OpenApiGen implements a workaround for a bug in Microsoft.Extensions.ApiDescription.Server 9.0.8, where nullable types are incorrectly emitted as type "any" in the OpenAPI definition. The generator heuristically locates an equivalent non-nullable schema (with the same required members) and applies the intended nullability. This assumes the base, non-nullable schema is emitted correctly.
+
 ## Getting Started
 
 ### Install via .NET Tool
