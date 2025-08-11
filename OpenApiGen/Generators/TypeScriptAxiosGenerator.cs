@@ -51,11 +51,11 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema, [], []));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema ?? new PrimitiveSchema(), [], []));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
-                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema, [], []));
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema ?? new PrimitiveSchema(), [], []));
                 } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
                     reqInterface = "string";
                 }
@@ -67,7 +67,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         var errResponseType = responseType == "200" ? "" : responseType;
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
                         sb.Append($"export type {resTypeInterface} = ");
-                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema, [], []));
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
                         resTypeInterface = "string";
                     }
@@ -195,7 +195,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 ("integer", _) => "number",
                 ("number", _) => "number",
                 ("boolean", _) => "boolean",
-                _ => "any"
+                _ => "void"
             };
         } else {
             throw new ApplicationException("Unknown schema type.");

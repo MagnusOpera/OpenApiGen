@@ -34,7 +34,7 @@ public record RequestBody {
 }
 
 public record MediaType {
-    public required Schema Schema { get; init; }
+    public Schema? Schema { get; init; }
 }
 
 public record Response {
@@ -48,25 +48,6 @@ public record Parameter {
     public bool? Required { get; init; }
     public required Schema Schema { get; init; }
 }
-
-// public record Schema {
-//     public string? Type { get; init; }
-//     public string? Format { get; init; }
-//     public List<string>? Required { get; init; }
-//     public Dictionary<string, Schema>? Properties { get; init; }
-//     public Schema? Items { get; init; }
-//     public List<Schema>? AnyOf { get; init; }
-//     [JsonPropertyName("$ref")] public string? Ref { get; init; }
-//     public List<string>? Enum { get; init; }
-//     public Discriminator? Discriminator { get; init; }
-//     public bool? Nullable { get; init; }
-//     public object? Default { get; init; }
-// }
-
-// public record Discriminator {
-//     public required string PropertyName { get; init; }
-//     public Dictionary<string, string>? Mapping { get; init; }
-// }
 
 [JsonConverter(typeof(SchemaConverter))]
 public abstract record Schema {
