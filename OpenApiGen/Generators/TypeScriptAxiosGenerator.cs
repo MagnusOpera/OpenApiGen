@@ -86,7 +86,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine($"return (await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})).data");
                 } else {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise {{");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
                     sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }

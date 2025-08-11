@@ -1,0 +1,6 @@
+{
+    "name": "openapigen",
+    "devDependencies": {
+        "axios": "^1.11.0"
+    }
+}
