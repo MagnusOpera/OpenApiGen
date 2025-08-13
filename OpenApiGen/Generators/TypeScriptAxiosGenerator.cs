@@ -230,7 +230,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         Regex.Replace(name, "[^a-zA-Z]", "");
 
     private static string Capitalize(string s) =>
-        string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
+        string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
 
     private static string ToTemplateString(string path) =>
         Regex.Replace(path, @"\{([^\}]+)\}", @"${$1}");
