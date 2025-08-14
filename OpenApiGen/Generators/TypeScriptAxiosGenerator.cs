@@ -41,7 +41,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
-            sb.AppendLine("import { isAxiosError } from \"axios\"");
             sb.AppendLine("import type { AxiosInstance } from \"axios\"");
             sb.AppendLine(globalImport);
             sb.AppendLine();
