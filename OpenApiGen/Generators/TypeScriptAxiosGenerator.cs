@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -11,6 +12,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
     private string GenerateGlobalTypes(string outputPath) {
         var sb = new StringBuilder();
+        sb.AppendLine("""
+export type ApiResponse<type extends 'success' | 'error', status extends number, T> = {
+    type: type
+    status: status
+    data: T
+}
+export type Ok<status extends number, T> = ApiResponse<'success', status, T>
+export type Err<status extends number, T> = ApiResponse<'error', status, T>
+""");
+
         foreach (var (name, schema) in sharedSchemas) {
             if (schema.Nullable is not null) throw new ApplicationException($"Shared type {name} shall not be nullable.");
             sb.Append($"export type {name} = ");
@@ -20,7 +31,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         File.WriteAllText(outputFilename, sb.ToString());
 
         var types = string.Join(", ", sharedSchemas.Select(x => x.Key));
-        return $"import type {{ {types} }} from \"./__shared_schemas__\"";
+        return $"import type {{ Ok, Err, {types} }} from \"./__shared_schemas__\"";
     }
 
 
@@ -61,19 +72,18 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     reqInterface = "string";
                 }
 
-                string? resInterface = null;
+                Dictionary<string, string> resDUInterfaces = [];
                 foreach (var (responseType, response) in op.Responses) {
                     string? resTypeInterface = null;
                     if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
-                        var errResponseType = responseType == "200" ? "" : responseType;
-                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{errResponseType}Response";
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        resDUInterfaces.Add(responseType, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content?.ContainsKey("text/plain") == true) {
-                        resTypeInterface = "string";
-                    }
-                    if (responseType == "200") {
-                        resInterface = resTypeInterface;
+                        resDUInterfaces.Add(responseType, "string");
+                    } else {
+                        throw new ApplicationException("Operation {method} {path} has unhandled response type");
                     }
                 }
 
@@ -90,26 +100,43 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     sb.AppendLine($" * @throws {resTypeInterface} when status is {responseType}");
                 }
                 sb.AppendLine(" */");
- 
-                // generate function
-                if (!string.IsNullOrEmpty(resInterface)) {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
+
+                // generate function with exception
+                if (resDUInterfaces.Count == 1 && !resDUInterfaces.ContainsValue("void")) {
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resDUInterfaces["200"]}> {{");
                     sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine("try {");
                     sb.Append(' ', INDENTATION_SIZE * 2);
-                    sb.AppendLine($"return (await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})).data");
+                    sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path) + query}`{requestArg})).data");
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("try {");
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }
-
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("} catch (err) {");
                 sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("if (isAxiosError(err)) {");
-
                 foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
                     sb.Append(' ', INDENTATION_SIZE * 3); sb.AppendLine($"if (err.response?.status === {responseType}) throw err.response.data as {resTypeInterface}");
+                }
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("}");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("throw err");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
+                sb.AppendLine("}");
+                sb.AppendLine();
+
+                // generate function with discriminated unions
+                var resInterface = string.Join(" | ", resDUInterfaces);
+                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
+                sb.Append(' ', INDENTATION_SIZE);
+                sb.AppendLine("try {");
+                sb.Append(' ', INDENTATION_SIZE * 2);
+                sb.AppendLine($"return [200, (await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})).data as {resDUInterfaces["200"]}]");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("} catch (err) {");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("if (isAxiosError(err)) {");
+                foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
+                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                    sb.Append(' ', INDENTATION_SIZE * 3); sb.AppendLine($"if (err.response?.status === {responseType}) return [{responseType}, err.response.data as {resTypeInterface}]");
                 }
                 sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("}");
                 sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("throw err");
