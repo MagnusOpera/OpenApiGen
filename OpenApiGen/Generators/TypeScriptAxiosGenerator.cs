@@ -40,6 +40,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             var sb = new StringBuilder();
             sb.AppendLine($"// === {tag} ===");
             sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
+            sb.AppendLine("import { isAxiosError } from \"axios\"");
             sb.AppendLine("import type { AxiosInstance } from \"axios\"");
             sb.AppendLine(globalImport);
             sb.AppendLine();
@@ -81,15 +82,39 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var query = queryArgs?.Any() == true ? $"?{string.Join("&", queryArgs)}" : "";
                 var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
                 var requestArg = reqInterface is not null ? $", request" : null;
+
+                // generate header
+                sb.AppendLine("/**");
+                foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
+                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                    sb.AppendLine($" * @throws {resTypeInterface} when status is {responseType}");
+                }
+                sb.AppendLine(" */");
+ 
+                // generate function
                 if (!string.IsNullOrEmpty(resInterface)) {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
                     sb.Append(' ', INDENTATION_SIZE);
+                    sb.AppendLine("try {");
+                    sb.Append(' ', INDENTATION_SIZE * 2);
                     sb.AppendLine($"return (await axios.{method}<{resInterface}>(`{ToTemplateString(path) + query}`{requestArg})).data");
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
-                    sb.Append(' ', INDENTATION_SIZE);
-                    sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("try {");
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }
+
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("} catch (err) {");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("if (isAxiosError(err)) {");
+
+                foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
+                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                    sb.Append(' ', INDENTATION_SIZE * 3); sb.AppendLine($"if (err.response?.status === {responseType}) throw err.response.data as {resTypeInterface}");
+                }
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("}");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("throw err");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
+
                 sb.AppendLine("}");
                 sb.AppendLine();
             }
