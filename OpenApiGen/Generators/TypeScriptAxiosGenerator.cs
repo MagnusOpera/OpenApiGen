@@ -102,7 +102,7 @@ export type Err<status extends number, T> = ApiResponse<'error', status, T>
                 sb.AppendLine(" */");
 
                 // generate function with exception
-                if (resDUInterfaces.Count == 1 && !resDUInterfaces.ContainsValue("void")) {
+                if (!resDUInterfaces.ContainsValue("void")) {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resDUInterfaces["200"]}> {{");
                     sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine("try {");
@@ -128,18 +128,13 @@ export type Err<status extends number, T> = ApiResponse<'error', status, T>
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
                 sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
-                sb.Append(' ', INDENTATION_SIZE);
-                sb.AppendLine("try {");
-                sb.Append(' ', INDENTATION_SIZE * 2);
-                sb.AppendLine($"return [200, (await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})).data as {resDUInterfaces["200"]}]");
-                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("} catch (err) {");
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("if (isAxiosError(err)) {");
-                foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true }})");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
+                foreach (var (responseType, response) in op.Responses) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                    sb.Append(' ', INDENTATION_SIZE * 3); sb.AppendLine($"if (err.response?.status === {responseType}) return [{responseType}, err.response.data as {resTypeInterface}]");
+                    sb.Append(' ', INDENTATION_SIZE*2); sb.AppendLine($"case {responseType}: return [{responseType}, resp.data as {resTypeInterface}]");
                 }
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("}");
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("throw err");
+                sb.Append(' ', INDENTATION_SIZE*2); sb.AppendLine("default: throw `Unexpected status ${resp.status}`");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
 
                 sb.AppendLine("}");
