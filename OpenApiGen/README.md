@@ -31,27 +31,32 @@ Sample TypeScript code generated for a PATCH operation on `/User/{id}`:
 ```typescript
 // === patch /User/{id} ===
 export type UserIdPatchRequest = {
-		firstName: null | string;
-		lastName: null | string;
-};
-export type UserIdPatchResponse = {
-		firstName: string;
-		lastName: string;
-};
-export type UserIdPatch400Response = ProblemDetails;
-export type UserIdPatch404Response = ProblemDetails;
-export async function patchUserId(
-	axios: AxiosInstance,
-	id: string,
-	request: UserIdPatchRequest
-): Promise<UserIdPatchResponse> {
-	return (await axios.patch<UserIdPatchResponse>(`/User/${id}`, request)).data;
+    firstName: null | string
+    lastName: null | string
+}
+export type UserIdPatch200Response = {
+    firstName: string
+    lastName: string
+}
+export type UserIdPatch400Response = ProblemDetails
+export type UserIdPatch404Response = ProblemDetails
+export async function patchUserIdAsync(axios: AxiosInstance, bearer: string, id: string, request: UserIdPatchRequest): Promise<[200, UserIdPatch200Response] | [400, UserIdPatch400Response] | [404, UserIdPatch404Response]> {
+    const resp = await axios.patch(`/User/${id}`, request, { validateStatus: () => true, headers: { Authorization: `Bearer ${bearer}` } })
+    switch (resp.status) {
+        case 200: return [200, resp.data as UserIdPatch200Response]
+        case 400: return [400, resp.data as UserIdPatch400Response]
+        case 404: return [404, resp.data as UserIdPatch404Response]
+        default: throw `Unexpected status ${resp.status}`
+    }
+}
+```
 
 ## Features
 
 - Generates TypeScript clients from OpenAPI definitions
 - Designed for easy integration with Axios and React Query
 - Inlines types for clarity and simplicity
+- Support for Bearer token (authorization header) and ApiKey (cookie)
 - Minimal dependencies, no runtime bloat
 
 ## Note on Nullable Types

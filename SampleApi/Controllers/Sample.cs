@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace SampleAPi;
 
@@ -54,6 +55,7 @@ public partial class UserController() : ControllerBase {
         return new HelloResponse { Message = $"Hello {request.FirstName} {request.LastName}" };
     }
 
+    [Authorize]
     [HttpPatch("{id}")]
     [ProducesResponseType<User>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

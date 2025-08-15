@@ -1,10 +1,15 @@
+using SampleApi;
+
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddOpenApi().AddControllers();
+builder.Services.AddOpenApi(options => {
+    options.AddDocumentTransformer(new AddBearerSecuritySchemeDocumentTransformer());
+    options.AddOperationTransformer(new AddBearerRequirementForAuthorizeOperationTransformer());
+});
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.MapOpenApi();
 }
 

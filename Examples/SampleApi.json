@@ -162,7 +162,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": [ ]
+          }
+        ]
       }
     }
   },
@@ -253,6 +258,14 @@
             "type": "string"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "JWT Bearer authentication",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   },
