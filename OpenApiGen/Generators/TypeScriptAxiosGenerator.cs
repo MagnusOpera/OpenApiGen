@@ -53,26 +53,37 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
                     sb.AppendLine(GenerateType(INDENTATION_SIZE, reqJsonContent.Schema ?? new PrimitiveSchema(), [], []));
+                } else if (op.RequestBody?.Content?.TryGetValue("text/plain", out var reqTxtContent) == true) {
+                    reqInterface = $"{GenerateInterfaceName(path, method)}Request";
+                    sb.Append($"export type {reqInterface} = ");
+                    sb.AppendLine(GenerateType(INDENTATION_SIZE, reqTxtContent.Schema ?? new PrimitiveSchema(), [], []));
                 } else if (op.RequestBody?.Content?.TryGetValue("multipart/form-data", out var reqMultipartContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
                     sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema ?? new PrimitiveSchema(), [], []));
-                } else if (op.RequestBody?.Content?.ContainsKey("text/plain") == true) {
-                    reqInterface = "string";
+                } else if (op.RequestBody == null) {
+                    // void case
+                } else {
+                    throw new ApplicationException($"Operation {method} {path} has an unhandled request type: {op.RequestBody?.Content?.Keys.FirstOrDefault()}");
                 }
 
                 Dictionary<string, string> resDUInterfaces = [];
                 foreach (var (responseType, response) in op.Responses) {
                     string? resTypeInterface = null;
-                    if (response.Content?.TryGetValue("application/json", out var resContent) == true) {
+                    if (response.Content?.TryGetValue("application/json", out var resJsonContent) == true) {
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
                         resDUInterfaces.Add(responseType, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
-                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resContent.Schema ?? new PrimitiveSchema(), [], []));
-                    } else if (response.Content?.ContainsKey("text/plain") == true) {
-                        resDUInterfaces.Add(responseType, "string");
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resJsonContent.Schema ?? new PrimitiveSchema(), [], []));
+                    } else if (response.Content?.TryGetValue("text/plain", out var resTxtContent) == true) {
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        resDUInterfaces.Add(responseType, resTypeInterface);
+                        sb.Append($"export type {resTypeInterface} = ");
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, resTxtContent.Schema ?? new PrimitiveSchema(), [], []));
+                    } else if (response.Content == null) {
+                        // void case
                     } else {
-                        throw new ApplicationException("Operation {method} {path} has unhandled response type");
+                        throw new ApplicationException($"Operation {method} {path} has an unhandled response type: {response.Content?.Keys.FirstOrDefault()}");
                     }
                 }
 
