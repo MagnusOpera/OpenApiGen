@@ -38,7 +38,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         }
 
         var bearerRequirement =
-            document.Components?.SecuritySchemes?.Where(x => x.Value is BearerSecurityScheme)
+            document.Components?.SecuritySchemes?.Where(x => x.Value is HttpSecurityScheme { Scheme: "bearer" })
                     .Select(x => x.Key).FirstOrDefault();
 
         foreach (var (tag, operations) in tags) {

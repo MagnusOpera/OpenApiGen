@@ -14,15 +14,21 @@ public record Components {
     public Dictionary<string, SecurityScheme>? SecuritySchemes { get; init; }
 }
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "scheme")]
-[JsonDerivedType(typeof(BearerSecurityScheme), typeDiscriminator: "bearer")]
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(HttpSecurityScheme), typeDiscriminator: "http")]
+[JsonDerivedType(typeof(ApiKeySecurityScheme), typeDiscriminator: "apiKey")]
 public record SecurityScheme {
-    public required string Type { get; init; }
     public required string Description { get; init; }
 }
 
-public record BearerSecurityScheme : SecurityScheme {
+public record HttpSecurityScheme : SecurityScheme {
+    public required string Scheme { get; init; }
     public required string BearerFormat { get; init; }
+}
+
+public record ApiKeySecurityScheme : SecurityScheme {
+    public required string In { get; init; }
+    public required string Name { get; init; }
 }
 
 public record PathItem {
