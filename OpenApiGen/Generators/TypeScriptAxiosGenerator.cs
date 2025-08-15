@@ -39,11 +39,18 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
         foreach (var (tag, operations) in tags) {
             var sb = new StringBuilder();
-            sb.AppendLine($"// === {tag} ===");
-            sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
-            sb.AppendLine("import type { AxiosInstance } from \"axios\"");
-            sb.AppendLine(globalImport);
-            sb.AppendLine();
+            var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
+
+            // add imports
+            if (!File.Exists(outputFilename)) {
+                sb.AppendLine($"// === {tag} ===");
+                sb.AppendLine("/* eslint-disable @typescript-eslint/no-unused-vars */");
+                sb.AppendLine("import type { AxiosInstance } from \"axios\"");
+                sb.AppendLine(globalImport);
+                sb.AppendLine();
+            }
+
+            // generate operations
             foreach (var (operationId, op, path, method) in operations) {
                 sb.AppendLine($"// === {method} {path} ===");
                 var functionName = GenerateFunctionName(path, method);
@@ -93,14 +100,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
                 var requestArg = reqInterface is not null ? $", request" : null;
 
-                // generate header
-                sb.AppendLine("/**");
-                foreach (var (responseType, response) in op.Responses.Where(kvp => kvp.Key != "200")) {
-                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                    sb.AppendLine($" * @throws {resTypeInterface} when status is {responseType}");
-                }
-                sb.AppendLine(" */");
-
                 // generate function with exception
                 if (!resDUInterfaces.ContainsValue("void")) {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resDUInterfaces["200"]}> {{");
@@ -111,7 +110,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
                 }
                 sb.AppendLine("}");
-                sb.AppendLine();
 
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
@@ -120,17 +118,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
                 foreach (var (responseType, response) in op.Responses) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                    sb.Append(' ', INDENTATION_SIZE*2); sb.AppendLine($"case {responseType}: return [{responseType}, resp.data as {resTypeInterface}]");
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, resp.data as {resTypeInterface}]");
                 }
-                sb.Append(' ', INDENTATION_SIZE*2); sb.AppendLine("default: throw `Unexpected status ${resp.status}`");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw `Unexpected status ${resp.status}`");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
 
                 sb.AppendLine("}");
                 sb.AppendLine();
             }
 
-            var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
-            File.WriteAllText(outputFilename, sb.ToString());
+            File.AppendAllText(outputFilename, sb.ToString());
         }
 
         foreach (var (source, target) in _replacedShemas) {
