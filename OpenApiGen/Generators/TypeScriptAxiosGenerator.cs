@@ -93,6 +93,9 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         throw new ApplicationException($"Operation {method} {path} has an unhandled response type: {response.Content?.Keys.FirstOrDefault()}");
                     }
                 }
+                if (!resDUInterfaces.ContainsKey("200")) {
+                    throw new ApplicationException($"Operation {method} {path} has no success response 200");                    
+                }
 
                 var paramArgs = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Where(x => x.In == "query").Select(ParameterQuery);
