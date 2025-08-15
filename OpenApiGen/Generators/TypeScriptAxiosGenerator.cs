@@ -37,6 +37,10 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             if (pathItem.Patch is not null) Add(tags, pathItem.Patch, path, "patch");
         }
 
+        var bearerRequirement =
+            document.Components?.SecuritySchemes?.Where(x => x.Value is BearerSecurityScheme)
+                    .Select(x => x.Key).FirstOrDefault();
+
         foreach (var (tag, operations) in tags) {
             var sb = new StringBuilder();
             var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
@@ -94,9 +98,12 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     }
                 }
                 if (!resDUInterfaces.ContainsKey("200")) {
-                    throw new ApplicationException($"Operation {method} {path} has no success response 200");                    
+                    throw new ApplicationException($"Operation {method} {path} has no success response 200");
                 }
 
+                var hasBearer = bearerRequirement is not null && op.Security?.Any(x => x.ContainsKey(bearerRequirement)) == true;
+                var bearerArgs = hasBearer ? ", bearer: string" : "";
+                var bearerHeader = hasBearer ? ", headers: { Authorization: `Bearer ${bearer}` }" : "";
                 var paramArgs = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Where(x => x.In == "query").Select(ParameterQuery);
                 var query = queryArgs?.Any() == true ? $"?{string.Join("&", queryArgs)}" : "";
@@ -116,8 +123,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
-                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{paramArgs}{requestType}): Promise<{resInterface}> {{");
-                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true }})");
+                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}): Promise<{resInterface}> {{");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
                 foreach (var (responseType, response) in op.Responses) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";

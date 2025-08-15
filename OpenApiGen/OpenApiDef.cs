@@ -11,6 +11,18 @@ public record OpenApiDocument {
 
 public record Components {
     public Dictionary<string, Schema>? Schemas { get; init; }
+    public Dictionary<string, SecurityScheme>? SecuritySchemes { get; init; }
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "scheme")]
+[JsonDerivedType(typeof(BearerSecurityScheme), typeDiscriminator: "bearer")]
+public record SecurityScheme {
+    public required string Type { get; init; }
+    public required string Description { get; init; }
+}
+
+public record BearerSecurityScheme : SecurityScheme {
+    public required string BearerFormat { get; init; }
 }
 
 public record PathItem {
@@ -26,6 +38,7 @@ public record Operation {
     public RequestBody? RequestBody { get; init; }
     public required Dictionary<string, Response> Responses { get; init; }
     public List<Parameter>? Parameters { get; init; }
+    public Dictionary<string, string[]>[]? Security { get; init; }
 }
 
 public record RequestBody {
