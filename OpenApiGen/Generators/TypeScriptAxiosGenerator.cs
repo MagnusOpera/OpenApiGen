@@ -156,7 +156,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         if (param.Schema.Default is null) {
             return $"${{{param.Name} === undefined ? `` : `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}`}}";
         } else {
-            return $"${{{param.Name} === undefined ? `{sep}${{encodeURIComponent({param.Schema.Default})}}` : `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}`}}";
+            return $"${{{param.Name} === undefined ? `{sep}{param.Name}=${{encodeURIComponent({param.Schema.Default})}}` : `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}`}}";
         }
     }
 
