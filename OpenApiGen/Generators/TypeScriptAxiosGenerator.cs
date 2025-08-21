@@ -154,7 +154,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     private static string ParameterQuery(Parameter param, int index) {
         var sep = index == 0 ? "?" : "&";
         if (param.Schema.Default is null) {
-            return $"${{{param.Name} === undefined ? `` : `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}`}}";
+            return $"${{{param.Name} === undefined ? '' : `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}`}}";
         } else {
             return $"{sep}{param.Name}=${{encodeURIComponent({param.Name} ?? {param.Schema.Default})}}";
         }
