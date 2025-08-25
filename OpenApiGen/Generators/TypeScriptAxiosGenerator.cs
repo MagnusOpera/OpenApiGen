@@ -106,7 +106,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var bearerHeader = hasBearer ? ", headers: { Authorization: `Bearer ${bearer}` }" : "";
                 var paramArgs = op.Parameters?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Where(x => x.In == "query").Select(ParameterQuery);
-                var query = queryArgs?.Any() == true ? $"{string.Concat(queryArgs)}" : "";
+                var query = queryArgs?.Any() == true ? $"?1=1{string.Concat(queryArgs)}" : "";
                 var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
                 var requestArg = reqInterface is not null ? $", request" : null;
 
@@ -152,11 +152,10 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     }
 
     private static string ParameterQuery(Parameter param, int index) {
-        var sep = index == 0 ? "?" : "&";
         if (param.Schema.Default is null) {
-            return $"${{{param.Name} ? `{sep}{param.Name}=${{encodeURIComponent({param.Name})}}` : ''}}";
+            return $"${{{param.Name} ? `&{param.Name}=${{encodeURIComponent({param.Name})}}` : ''}}";
         } else {
-            return $"{sep}{param.Name}=${{encodeURIComponent({param.Name} ?? {param.Schema.Default})}}";
+            return $"&{param.Name}=${{encodeURIComponent({param.Name} ?? {param.Schema.Default})}}";
         }
     }
 
