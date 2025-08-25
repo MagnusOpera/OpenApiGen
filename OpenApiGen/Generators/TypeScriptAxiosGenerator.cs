@@ -113,7 +113,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 // generate function with exception
                 if (!resDUInterfaces.ContainsValue("void")) {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{requestType}{paramArgs}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
+                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
                     sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path) + query}`{requestArg})).data");
                 } else {
@@ -124,7 +124,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
-                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{requestType}{paramArgs}{queryArgs}): Promise<{resInterface}> {{");
+                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}{queryArgs}): Promise<{resInterface}> {{");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
                 foreach (var (responseType, response) in op.Responses) {
