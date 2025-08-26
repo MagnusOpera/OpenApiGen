@@ -60,6 +60,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var functionName = GenerateFunctionName(path, method);
 
                 string? reqInterface = null;
+                ObjectSchema? multipartSchema = null;
                 if (op.RequestBody?.Content?.TryGetValue("application/json", out var reqJsonContent) == true) {
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
@@ -72,6 +73,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     reqInterface = $"{GenerateInterfaceName(path, method)}Request";
                     sb.Append($"export type {reqInterface} = ");
                     sb.AppendLine(GenerateType(INDENTATION_SIZE, reqMultipartContent.Schema ?? new PrimitiveSchema(), [], []));
+                    multipartSchema = reqMultipartContent.Schema as ObjectSchema;
                 } else if (op.RequestBody == null) {
                     // void case
                 } else {
@@ -114,8 +116,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 // generate function with exception
                 if (!resDUInterfaces.ContainsValue("void")) {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
-                    sb.Append(' ', INDENTATION_SIZE);
-                    sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path) + query}`{requestArg})).data");
+                    if (multipartSchema is not null) {
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
+                        foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
+                            var accessor = $"request.{propName}";
+                            sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor}) __form__.append(\"{propName}\", {accessor})");
+                        }
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path) + query}`, __form__)).data");
+                    } else {
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path) + query}`{requestArg})).data");
+                    }
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path) + query}`{requestArg})");
@@ -125,7 +135,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
                 sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}{queryArgs}): Promise<{resInterface}> {{");
-                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
+                if (multipartSchema is not null) {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
+                    foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
+                        var accessor = $"request.{propName}";
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor}) __form__.append(\"{propName}\", {accessor})");
+                    }
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = (await axios.{method}(`{ToTemplateString(path) + query}`, __form__)).data");
+                } else {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path) + query}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
+                }
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
                 foreach (var (responseType, response) in op.Responses) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
