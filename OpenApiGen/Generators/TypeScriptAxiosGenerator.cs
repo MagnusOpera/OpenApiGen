@@ -135,10 +135,11 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                             var accessor = $"request.{propName}";
                             sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
                         }
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`, __form__)).data");
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`, __form__)");
                     } else {
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"return (await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})).data");
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
                     }
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("return __response__.data");
                 } else {
                     sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
@@ -165,16 +166,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         var accessor = $"request.{propName}";
                         sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
                     }
-                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__)).data");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__)).data");
                 } else {
-                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const resp = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
                 }
-                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (resp.status) {");
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (__response__.status) {");
                 foreach (var (responseType, response) in op.Responses) {
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, resp.data as {resTypeInterface}]");
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, __response__.data as {resTypeInterface}]");
                 }
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw `Unexpected status ${resp.status}`");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw `Unexpected status ${__response__.status}`");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
 
                 sb.AppendLine("}");
