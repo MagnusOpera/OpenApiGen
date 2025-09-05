@@ -166,7 +166,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         var accessor = $"request.{propName}";
                         sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
                     }
-                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__)).data");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__))");
                 } else {
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
                 }
