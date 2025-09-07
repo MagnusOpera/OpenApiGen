@@ -95,12 +95,13 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, resTxtContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content == null) {
                         // void case
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        resDUInterfaces.Add(responseType, resTypeInterface);
+                        sb.Append($"export type {resTypeInterface} = ");
+                        sb.AppendLine(GenerateType(INDENTATION_SIZE, new PrimitiveSchema(), [], []));
                     } else {
                         throw new ApplicationException($"Operation {method} {path} has an unhandled response type: {response.Content?.Keys.FirstOrDefault()}");
                     }
-                }
-                if (!resDUInterfaces.ContainsKey("200")) {
-                    throw new ApplicationException($"Operation {method} {path} has no success response 200");
                 }
 
                 var hasBearer = bearerRequirement is not null && op.Security?.Any(x => x.ContainsKey(bearerRequirement)) == true;
@@ -108,42 +109,34 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var bearerHeader = hasBearer ? ", headers: { Authorization: `Bearer ${bearer}` }" : "";
                 var paramArgs = op.Parameters?.Where(x => x.In != "query")?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Where(x => x.In == "query")?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
-                // var queryUrlArgs = op.Parameters?.Where(x => x.In == "query").Select(ParameterQuery);
-                // var query = queryUrlArgs?.Any() == true ? $"?1=1{string.Concat(queryUrlArgs)}" : "";
                 var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
                 var requestArg = reqInterface is not null ? $", request" : null;
 
                 var queryParams = op.Parameters?.Where(x => x.In == "query").ToList();
 
                 // generate function with exception
-                if (!resDUInterfaces.ContainsValue("void")) {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
-
-                    if (queryParams?.Any() == true) {
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __query__: string[] = [];");
-                        foreach (var param in queryParams) {
-                            sb.Append(' ', INDENTATION_SIZE); sb.AppendLine(ParameterQueryInitializer(param));
-                        }
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = __query__.length ? `?${__query__.join(\"&\")}` : \"\";");
-                    } else {
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = \"\";");
+                sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
+                if (queryParams?.Any() == true) {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __query__: string[] = [];");
+                    foreach (var param in queryParams) {
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine(ParameterQueryInitializer(param));
                     }
-
-                    if (multipartSchema is not null) {
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
-                        foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
-                            var accessor = $"request.{propName}";
-                            sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
-                        }
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`, __form__)");
-                    } else {
-                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
-                    }
-                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("return __response__.data");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = __query__.length ? `?${__query__.join(\"&\")}` : \"\";");
                 } else {
-                    sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}): Promise<void> {{");
-                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = \"\";");
                 }
+
+                if (multipartSchema is not null) {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
+                    foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
+                        var accessor = $"request.{propName}";
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
+                    }
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`, __form__)");
+                } else {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
+                }
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("return __response__.data");
                 sb.AppendLine("}");
 
                 // generate function with discriminated unions
