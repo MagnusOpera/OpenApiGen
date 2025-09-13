@@ -270,6 +270,11 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 sb.Append(' ', indent);
                 sb.AppendLine($"{name}{optional}: {type}");
             }
+            if (objSchema.AdditionalProperties is not null) {
+                var mapValueType = GenerateType(indent + INDENTATION_SIZE, objSchema.AdditionalProperties, [], []);
+                sb.Append(' ', indent);
+                sb.AppendLine($"[key: string]: {mapValueType}");
+            }
             sb.Append(' ', indent - INDENTATION_SIZE);
             sb.Append('}');
             return sb.ToString();

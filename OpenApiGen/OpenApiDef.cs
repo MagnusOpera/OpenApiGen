@@ -89,6 +89,8 @@ public sealed record ArraySchema : Schema {
 public record ObjectSchema : Schema {
     public Dictionary<string, Schema>? Properties { get; init; }
     public List<string>? Required { get; init; }
+
+    public Schema? AdditionalProperties { get; init; }
 }
 
 public sealed record ComposedSchema : ObjectSchema {
