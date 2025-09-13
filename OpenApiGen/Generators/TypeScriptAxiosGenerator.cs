@@ -116,7 +116,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
-                sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}{queryArgs}): Promise<{resInterface}> {{");
+                sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}{queryArgs}): Promise<{resInterface}> {{");
 
                 if (queryParams?.Any() == true) {
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __query__: string[] = [];");
