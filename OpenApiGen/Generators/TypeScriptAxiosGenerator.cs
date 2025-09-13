@@ -114,6 +114,31 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 var queryParams = op.Parameters?.Where(x => x.In == "query").ToList();
 
+                // generate function with exception
+                sb.AppendLine($"export async function {functionName}(axios: AxiosInstance{paramArgs}{requestType}{queryArgs}): Promise<{resDUInterfaces["200"]}> {{");
+                if (queryParams?.Any() == true) {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __query__: string[] = [];");
+                    foreach (var param in queryParams) {
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine(ParameterQueryInitializer(param));
+                    }
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = __query__.length ? `?${__query__.join(\"&\")}` : \"\";");
+                } else {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __queryString__ = \"\";");
+                }
+
+                if (multipartSchema is not null) {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
+                    foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
+                        var accessor = $"request.{propName}";
+                        sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
+                    }
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`, __form__)");
+                } else {
+                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}<{resDUInterfaces["200"]}>(`{ToTemplateString(path)}${{__queryString__}}`{requestArg})");
+                }
+                sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("return __response__.data");
+                sb.AppendLine("}");
+
                 // generate function with discriminated unions
                 var resInterface = string.Join(" | ", resDUInterfaces);
                 sb.AppendLine($"export async function {functionName}Async(axios: AxiosInstance{bearerArgs}{paramArgs}{requestType}{queryArgs}): Promise<{resInterface}> {{");
