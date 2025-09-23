@@ -131,7 +131,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 if (multipartSchema is not null) {
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("const __form__ = new FormData()");
                     foreach (var (propName, propSchema) in multipartSchema.Properties ?? []) {
-                        var accessor = $"request.{propName}";
+                        var accessor = $"request.{ToFieldName(propName)}";
                         sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"if ({accessor} !== undefined) __form__.append(\"{propName}\", {accessor})");
                     }
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__))");
@@ -154,7 +154,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         }
 
         foreach (var (source, target) in _replacedShemas) {
-            Console.WriteLine($"WARNING: component {source} replaced with {target}");  
+            Console.WriteLine($"WARNING: component {source} replaced with {target}");
         }
     }
 
@@ -243,7 +243,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var optional = required.Contains(name) ? "" : "?";
                 var type = GenerateType(indent + INDENTATION_SIZE, prop, [], []);
                 sb.Append(' ', indent);
-                sb.AppendLine($"{name}{optional}: {type}");
+                var fieldname = ToFieldName(name);
+                sb.AppendLine($"{fieldname}{optional}: {type}");
             }
             if (objSchema.AdditionalProperties is not null) {
                 var mapValueType = GenerateType(indent + INDENTATION_SIZE, objSchema.AdditionalProperties, [], []);
@@ -299,6 +300,14 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     private static string Capitalize(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
 
+    private static string Lowerize(string s) =>
+        string.IsNullOrEmpty(s) ? s : char.ToLowerInvariant(s[0]) + s[1..];
+
     private static string ToTemplateString(string path) =>
         Regex.Replace(path, @"\{([^\}]+)\}", @"${$1}");
+
+    private static string ToFieldName(string name) {
+        name = Regex.Replace(name, "[^a-zA-Z0-9]", "");
+        return Lowerize(name);
+    }
 }
