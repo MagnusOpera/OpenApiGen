@@ -110,7 +110,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 var paramArgs = op.Parameters?.Where(x => x.In != "query")?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var queryArgs = op.Parameters?.Where(x => x.In == "query")?.Aggregate("", (acc, param) => $"{acc}, {ParameterPrototype(param)}");
                 var requestType = reqInterface is not null ? $", request: {reqInterface}" : null;
-                var requestArg = reqInterface is not null ? $", request" : ", {}";
+                var requestArg = reqInterface is not null ? $", request" : null;
 
                 var queryParams = op.Parameters?.Where(x => x.In == "query").ToList();
 
