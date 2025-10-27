@@ -143,7 +143,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, __response__.data as {resTypeInterface}]");
                 }
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw `Unexpected status ${__response__.status}`");
+                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw Error(`Unexpected status ${__response__.status}`)");
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
 
                 sb.AppendLine("}");
