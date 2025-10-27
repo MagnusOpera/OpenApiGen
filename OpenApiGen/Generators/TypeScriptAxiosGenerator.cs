@@ -85,7 +85,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     string? resTypeInterface = null;
                     if (response.Content?.TryGetValue("application/json", out var resJsonContent) == true) {
                         resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                        resDUInterfaces.Add(responseType, resTypeInterface);
+                        if (responseType != "default") resDUInterfaces.Add(responseType, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, resJsonContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content?.TryGetValue("text/plain", out var resTxtContent) == true) {
@@ -139,11 +139,21 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
                 }
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (__response__.status) {");
+                Response? defaultResponse = null;
                 foreach (var (responseType, response) in op.Responses) {
-                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, __response__.data as {resTypeInterface}]");
+                    if (responseType == "default") {
+                        defaultResponse = response;
+                    } else {
+                        var resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
+                        sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"case {responseType}: return [{responseType}, __response__.data as {resTypeInterface}]");
+                    }
                 }
-                sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw Error(`Unexpected status ${__response__.status}`)");
+                if (defaultResponse is not null) {
+                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}defaultResponse";
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"default: throw __response__.data as {resTypeInterface}");
+                } else {
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw Error(`Unexpected status ${__response__.status}`)");
+                }
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("}");
 
                 sb.AppendLine("}");
