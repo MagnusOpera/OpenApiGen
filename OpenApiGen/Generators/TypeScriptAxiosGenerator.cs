@@ -260,7 +260,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 (primSchema.Types, primSchema.Type) switch {
                     (string[], _) => primSchema.Types,
                     (null, string) => [primSchema.Type],
-                    _ => []
+                    _ => ["void"]
                 };
             return string.Join(" | ", types.Select(type => (type, primSchema.Format) switch {
                 ("string", "binary") => "File",
