@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -257,14 +256,21 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         } else if (schema is EnumSchema enumSchema) {
             return string.Join(" | ", enumSchema.Enum.Select(e => $"\"{e}\""));
         } else if (schema is PrimitiveSchema primSchema) {
-            return (primSchema.Type, primSchema.Format) switch {
+            var types =
+                (primSchema.Types, primSchema.Type) switch {
+                    (string[], _) => primSchema.Types,
+                    (null, string) => [primSchema.Type],
+                    _ => []
+                };
+            return string.Join(" | ", types.Select(type => (type, primSchema.Format) switch {
                 ("string", "binary") => "File",
                 ("string", _) => "string",
                 ("integer", _) => "number",
                 ("number", _) => "number",
                 ("boolean", _) => "boolean",
+                ("null", _) => "null",
                 _ => "void"
-            };
+            }));
         } else {
             throw new ApplicationException("Unknown schema type.");
         }

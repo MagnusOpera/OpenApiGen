@@ -13,11 +13,14 @@ gen:
 gen-buggy:
 	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/BuggyApi.json generated
 
-gen-fund:
-	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/FundApi.json generated
+gen-invest:
+	dotnet run --project OpenApiGen -- Examples/InvestApi.config.json Examples/InvestApi.json generated
 
 gen-art:
 	dotnet run --project OpenApiGen -- Examples/FundApi.config.json Examples/ArtApi.json generated
+
+gen-petstore:
+	dotnet run --project OpenApiGen -- Examples/Default.config.json Examples/PetStore.json generated
 
 help:
 	dotnet run --project OpenApiGen -- --help
