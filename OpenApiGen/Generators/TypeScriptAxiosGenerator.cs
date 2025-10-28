@@ -82,21 +82,22 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
                 Dictionary<string, string> resDUInterfaces = [];
                 foreach (var (responseType, response) in op.Responses) {
+                    var responseTypeOrDefault = responseType == "default" ? "0" : responseType;
                     string? resTypeInterface = null;
                     if (response.Content?.TryGetValue("application/json", out var resJsonContent) == true) {
-                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                        if (responseType != "default") resDUInterfaces.Add(responseType, resTypeInterface);
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseTypeOrDefault}Response";
+                        resDUInterfaces.Add(responseTypeOrDefault, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, resJsonContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content?.TryGetValue("text/plain", out var resTxtContent) == true) {
-                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                        resDUInterfaces.Add(responseType, resTypeInterface);
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseTypeOrDefault}Response";
+                        resDUInterfaces.Add(responseTypeOrDefault, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, resTxtContent.Schema ?? new PrimitiveSchema(), [], []));
                     } else if (response.Content == null) {
                         // void case
-                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseType}Response";
-                        resDUInterfaces.Add(responseType, resTypeInterface);
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseTypeOrDefault}Response";
+                        resDUInterfaces.Add(responseTypeOrDefault, resTypeInterface);
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, new PrimitiveSchema(), [], []));
                     } else {
@@ -149,8 +150,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     }
                 }
                 if (defaultResponse is not null) {
-                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}defaultResponse";
-                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"default: throw __response__.data as {resTypeInterface}");
+                    var resTypeInterface = $"{GenerateInterfaceName(path, method)}0Response";
+                    sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine($"default: return [0, __response__.data as {resTypeInterface}]");
                 } else {
                     sb.Append(' ', INDENTATION_SIZE * 2); sb.AppendLine("default: throw Error(`Unexpected status ${__response__.status}`)");
                 }
