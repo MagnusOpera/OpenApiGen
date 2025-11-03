@@ -70,12 +70,12 @@ public record Parameter {
 
 [JsonConverter(typeof(SchemaConverter))]
 public abstract record Schema {
-    public bool? Nullable { get; init; }
+    public bool? Nullable { get; init; } // deprecated in 3.1
     public object? Default { get; init; }
 }
 
 public sealed record EnumSchema : Schema {
-    public required List<string> Enum { get; init; }
+    public required List<string?> Enum { get; init; }
 }
 
 public sealed record RefSchema : Schema {
@@ -105,5 +105,5 @@ public sealed record Discriminator {
 public sealed record PrimitiveSchema : Schema {
     public string? Type { get; init; }   // "string", "integer", "number", "boolean"
     public string? Format { get; init; } // "date-time", "uuid", etc.
+    public string[]? Types { get; init; } // new in 3.1
 }
-

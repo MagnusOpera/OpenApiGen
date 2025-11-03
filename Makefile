@@ -14,7 +14,7 @@ gen-buggy:
 	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/BuggyApi.json generated
 
 gen-invest:
-	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/InvestApi.json generated
+	dotnet run --project OpenApiGen -- Examples/InvestApi.config.json Examples/InvestApi.json generated
 
 gen-art:
 	dotnet run --project OpenApiGen -- Examples/FundApi.config.json Examples/ArtApi.json generated
