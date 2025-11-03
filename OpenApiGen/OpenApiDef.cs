@@ -75,7 +75,7 @@ public abstract record Schema {
 }
 
 public sealed record EnumSchema : Schema {
-    public required List<string> Enum { get; init; }
+    public required List<string?> Enum { get; init; }
 }
 
 public sealed record RefSchema : Schema {

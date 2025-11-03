@@ -254,7 +254,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             sb.Append('}');
             return sb.ToString();
         } else if (schema is EnumSchema enumSchema) {
-            return string.Join(" | ", enumSchema.Enum.Select(e => $"\"{e}\""));
+            return string.Join(" | ", enumSchema.Enum.Where(e => e is not null).Select(e => $"\"{e}\""));
         } else if (schema is PrimitiveSchema primSchema) {
             var types =
                 (primSchema.Types, primSchema.Type) switch {
