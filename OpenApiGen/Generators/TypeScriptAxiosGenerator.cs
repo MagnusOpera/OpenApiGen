@@ -163,14 +163,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         return $"{param.Name}{optional}: {tsType}";
     }
 
-    private static string ParameterQuery(Parameter param, int index) {
-        if (param.Schema.Default is null) {
-            return $"${{{param.Name} ? `&{param.Name}=${{encodeURIComponent({param.Name})}}` : ''}}";
-        } else {
-            return $"&{param.Name}=${{encodeURIComponent({param.Name} ?? {param.Schema.Default})}}";
-        }
-    }
-
     private static string ParameterQueryInitializer(Parameter param) {
         return $"if ({param.Name} !== undefined) __query__.push(`{param.Name}=${{encodeURIComponent({param.Name})}}`);";
     }
