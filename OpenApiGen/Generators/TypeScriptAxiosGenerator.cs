@@ -79,6 +79,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     throw new ApplicationException($"Operation {method} {path} has an unhandled request type: {op.RequestBody?.Content?.Keys.FirstOrDefault()}");
                 }
 
+                var hasBinaryResponse = false;
                 Dictionary<string, string> resDUInterfaces = [];
                 foreach (var (responseType, response) in op.Responses) {
                     var responseTypeOrDefault = responseType == "default" ? "0" : responseType;
@@ -100,7 +101,10 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                         sb.Append($"export type {resTypeInterface} = ");
                         sb.AppendLine(GenerateType(INDENTATION_SIZE, new PrimitiveSchema(), [], []));
                     } else {
-                        throw new ApplicationException($"Operation {method} {path} has an unhandled response type: {response.Content?.Keys.FirstOrDefault()}");
+                        hasBinaryResponse = true;
+                        resTypeInterface = $"{GenerateInterfaceName(path, method)}{responseTypeOrDefault}Response";
+                        resDUInterfaces.Add(responseTypeOrDefault, resTypeInterface);
+                        sb.AppendLine($"export type {resTypeInterface} = Blob");
                     }
                 }
 
@@ -136,7 +140,9 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     }
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__))");
                 } else {
-                    sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader} }})");
+                    var responseTypeConfig = hasBinaryResponse ? ", responseType: 'blob' as const" : "";
+                    sb.Append(' ', INDENTATION_SIZE); 
+                    sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader}{responseTypeConfig} }})");
                 }
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (__response__.status) {");
                 Response? defaultResponse = null;
@@ -266,7 +272,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                     _ => ["void"]
                 };
             return string.Join(" | ", types.Select(type => (type, primSchema.Format) switch {
-                ("string", "binary") => "File",
+                ("string", "binary") => "Blob",
                 ("string", _) => "string",
                 ("integer", _) => "number",
                 ("number", _) => "number",
