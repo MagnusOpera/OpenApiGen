@@ -103,7 +103,7 @@ public sealed record Discriminator {
 }
 
 public sealed record PrimitiveSchema : Schema {
-    public string? Type { get; init; }   // "string", "integer", "number", "boolean"
+    public List<string>? Type { get; init; }   // "string", "integer", "number", "boolean"
     public string? Format { get; init; } // "date-time", "uuid", etc.
-    public string[]? Types { get; init; } // new in 3.1
+    public string? Pattern { get; init; }
 }

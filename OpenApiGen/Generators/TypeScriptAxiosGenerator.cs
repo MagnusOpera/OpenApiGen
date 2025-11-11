@@ -265,12 +265,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         } else if (schema is EnumSchema enumSchema) {
             return string.Join(" | ", enumSchema.Enum.Where(e => e is not null).Select(e => $"\"{e}\""));
         } else if (schema is PrimitiveSchema primSchema) {
-            var types =
-                (primSchema.Types, primSchema.Type) switch {
-                    (string[], _) => primSchema.Types,
-                    (null, string) => [primSchema.Type],
-                    _ => ["void"]
-                };
+            var types = primSchema.Type ?? ["void"];
             return string.Join(" | ", types.Select(type => (type, primSchema.Format) switch {
                 ("string", "binary") => "Blob",
                 ("string", _) => "string",
