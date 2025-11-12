@@ -197,46 +197,14 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
 
     private string RawGenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
         if (schema is RefSchema refSchema) {
-            // NOTE: Workaround for a bug in Microsoft.Extensions.ApiDescription.Server 9.0.8,
-            //       where nullable types are incorrectly emitted in the OpenAPI definition
-            //       as having type "any". This heuristic locates an equivalent schema
-            //       without nullability (but with the same required members) and then
-            //       applies the intended nullability to it. It assumes the base, non-nullable
-            //       schema is emitted correctly, which appears to be the case.
             var componentName = refSchema.Ref.Split("/").Last();
             var compSchema = components[componentName];
-            // already replaced ?
-            if (_replacedShemas.TryGetValue(componentName, out var repCompNamec)) {
-                compSchema = components[repCompNamec] with { Nullable = compSchema.Nullable };
-
-                // target component has any member ?
-            } else if (compSchema is ObjectSchema compObjSchema
-                && compObjSchema.Properties?.Any(x => (x.Value as PrimitiveSchema)?.Type is null) == true) {
-
-                // try to find another component with same equivalent name and same members but with types this time
-                // note this can lamely fail of course
-                var compMembers = compObjSchema.Properties?.Keys.ToList() ?? [];
-                var candidateName = GenerateRefName(componentName);
-                var candidateComp = components.FirstOrDefault(candidate => {
-                    if (candidate.Key.StartsWith(candidateName) && candidate.Value is ObjectSchema candidateObjShema
-                        && candidateObjShema.Properties?.All(x => x.Value is PrimitiveSchema { Type: not null } || x.Value is RefSchema) == true) {
-                        var candidateMembers = candidateObjShema.Properties?.Keys.ToList() ?? [];
-                        return candidateMembers.SequenceEqual(compMembers);
-                    }
-                    return false;
-                });
-
-                if (candidateComp.Value is not null && componentName != candidateComp.Key) {
-                    _replacedShemas[componentName] = candidateComp.Key;
-                    compSchema = candidateComp.Value with { Nullable = compSchema.Nullable };
-                }
-            }
-
             return GenerateType(indent, compSchema, composedRequired, composedProperties);
         } else if (schema is ComposedSchema compSchema) {
             string[] variantComposedRequired = [.. composedRequired, .. compSchema.Required ?? []];
             Dictionary<string, Schema> variantComposedProperties = new([.. composedProperties, .. compSchema.Properties ?? []]);
-            var variants = string.Join(" | ", compSchema.AnyOf.Select(variant => {
+            var composed = compSchema.AnyOf ?? compSchema.OneOf ?? [];
+            var variants = string.Join(" | ", composed.Select(variant => {
                 return GenerateType(indent, variant, variantComposedRequired, variantComposedProperties);
             }));
             return variants;
@@ -273,6 +241,8 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
                 ("number", _) => "number",
                 ("boolean", _) => "boolean",
                 ("null", _) => "null",
+                ("void", "date") => "string",
+                ("void", "date-time") => "string",
                 _ => "void"
             }));
         } else {

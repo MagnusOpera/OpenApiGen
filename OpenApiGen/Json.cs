@@ -13,7 +13,7 @@ public sealed class SchemaConverter : JsonConverter<Schema> {
             return DeserializeAs<RefSchema>(el, options);
         }
 
-        if (el.TryGetProperty("anyOf", out _)) {
+        if (el.TryGetProperty("anyOf", out _) || el.TryGetProperty("oneOf", out _)) {
             return DeserializeAs<ComposedSchema>(el, options);
         }
 

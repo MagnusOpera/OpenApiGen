@@ -94,7 +94,8 @@ public record ObjectSchema : Schema {
 }
 
 public sealed record ComposedSchema : ObjectSchema {
-    public required List<Schema> AnyOf { get; init; }
+    public List<Schema>? AnyOf { get; init; }
+    public List<Schema>? OneOf { get; init; }
     public Discriminator? Discriminator { get; init; }
 }
 
