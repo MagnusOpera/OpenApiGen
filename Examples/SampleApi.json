@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.1.1",
   "info": {
     "title": "SampleApi | v1",
     "version": "1.0.0"
@@ -112,7 +112,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -120,12 +121,12 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchUser"
+                "$ref": "#/components/schemas/User"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/PatchUser"
+                "$ref": "#/components/schemas/User"
               }
             }
           },
@@ -162,12 +163,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "bearerAuth": [ ]
-          }
-        ]
+        }
       }
     }
   },
@@ -185,8 +181,10 @@
           },
           "lastName": {
             "minLength": 1,
-            "type": "string",
-            "nullable": true
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -201,46 +199,39 @@
           }
         }
       },
-      "PatchUser": {
-        "required": [
-          "firstName",
-          "lastName"
-        ],
-        "type": "object",
-        "properties": {
-          "firstName": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastName": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
           "type": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "title": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "status": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           },
           "detail": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "instance": {
-            "type": "string",
-            "nullable": true
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -252,20 +243,18 @@
         "type": "object",
         "properties": {
           "firstName": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "lastName": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "description": "JWT Bearer authentication",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
       }
     }
   },

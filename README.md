@@ -48,11 +48,7 @@ export async function patchUserIdAsync(axios: AxiosInstance, bearer: string, id:
 - Inlines types for clarity and simplicity
 - Support for Bearer token (authorization header) and ApiKey (cookie)
 - Minimal dependencies, no runtime bloat
-- Supports OpenApi 3.0 Schema
-
-## Note on Any Types
-
-OpenApiGen implements a workaround for a bug in Microsoft.Extensions.ApiDescription.Server 9.0.8, where nullable types are incorrectly emitted as type "any" in the OpenAPI definition. The generator heuristically locates an equivalent non-nullable schema (with the same required members) and applies the intended nullability. This assumes the base, non-nullable schema is emitted correctly.
+- Supports OpenApi 3.0/3.1 Schema
 
 ## Getting Started
 
@@ -78,7 +74,7 @@ openapigen --help
 
 ### Prerequisites
 
-- [.NET 9.0 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
 - Node.js (for consuming generated TypeScript clients)
 - [GNU Make](https://www.gnu.org/software/make/) (optional, for building with `make`)
 
@@ -106,18 +102,17 @@ To run the generator with the provided sample project:
 make run
 ```
 
-This will generate a TypeScript client from the sample API definition in `SampleApi/SampleApi.json` using the configuration in `Examples/SampleApi.config.json`. Output is available in the `generated` folder.
+This will generate a TypeScript client from the sample API definition in `SampleApi/SampleApi.json`. Output is available in the `generated` folder.
 
 ### Usage
 
 Run the generator with your OpenAPI definition:
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -- <path-to-config.json> <path-to-openapi.json> <output-dir>
+dotnet run --project OpenApiGen/OpenApiGen.csproj -- <path-to-openapi.json> <output-dir>
 ```
 
 With:
-- <path-to-config.json>: path to configuration
 - <path-to-openapi.json>: path to openapi definition file
 - <output-dir>: path to generated client. WARNING: content is purged without notice.
 
@@ -131,46 +126,6 @@ dotnet run --project OpenApiGen/OpenApiGen.csproj -- Examples/config.json Exampl
 
 - `OpenApiGen/` - Main C# generator code
 - `Examples/` - Example OpenAPI definitions and configuration files
-
-## Configuration
-
-
-You can provide a configuration JSON file to customize shared schemas and other generation options. Below is an example configuration file from `Examples/SampleApi.config.json`:
-
-```json
-{
-	"sharedSchemas": {
-		"ProblemDetails": {
-			"type": "object",
-			"properties": {
-				"type": {
-					"type": "string",
-					"nullable": true
-				},
-				"title": {
-					"type": "string",
-					"nullable": true
-				},
-				"status": {
-					"type": "integer",
-					"format": "int32",
-					"nullable": true
-				},
-				"detail": {
-					"type": "string",
-					"nullable": true
-				},
-				"instance": {
-					"type": "string",
-					"nullable": true
-				}
-			}
-		}
-	}
-}
-```
-
-Refer to the `Examples/` directory for more configuration samples.
 
 ## Contributing
 

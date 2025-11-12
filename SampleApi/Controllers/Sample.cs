@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-namespace SampleAPi;
+namespace SampleApi.Controllers;
 
 
 public record HelloRequest {
@@ -17,16 +17,6 @@ public record HelloResponse {
     public required string Message { get; init; }
 }
 
-public record PatchUser {
-    public required string? FirstName { get; init; }
-    public required string? LastName { get; init; }
-}
-
-public record User {
-    public required string FirstName { get; init; }
-    public required string LastName { get; init; }
-}
-
 
 [ApiController]
 [Route("[controller]")]
@@ -36,14 +26,15 @@ public partial class UserController() : ControllerBase {
     [HttpGet]
     [ProducesResponseType<string[]>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<User[]> ListPaginated(int skip = 0, int limit = 20) {
+    public ActionResult<Models.User[]> ListPaginated(int skip = 0, int limit = 20) {
         if (skip < 0 || limit <= 0) {
             return BadRequest();
         }
 
-        User[] result = [.. Enumerable.Range(1, 100)
-                           .Select(x => new User { FirstName = $"FirstName {x}",
-                                                   LastName = $"LastName {x}" })
+        Models.User[] result = [.. Enumerable.Range(1, 100)
+                           .Select(x => new Models.User { Id = x,
+                                                          FirstName = $"FirstName {x}",
+                                                          LastName = $"LastName {x}" })
                            .Skip(skip).Take(limit)];
         return result;
     }
@@ -57,11 +48,11 @@ public partial class UserController() : ControllerBase {
 
     [Authorize]
     [HttpPatch("{id}")]
-    [ProducesResponseType<User>(StatusCodes.Status200OK)]
+    [ProducesResponseType<Models.User>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<User> Update(string id, PatchUser patch) {
-        return new User { FirstName = "Tagada", LastName = "Pouet Pouet" };
+    public ActionResult<Models.User> Update(int id, Models.Patch.User patch) {
+        return new Models.User { Id = id, FirstName = "Tagada", LastName = "Pouet Pouet" };
     }
 
 }

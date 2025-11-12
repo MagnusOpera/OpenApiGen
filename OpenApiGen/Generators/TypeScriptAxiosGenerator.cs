@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiGen.Generators;
 
-public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
+public partial class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
 
     private const int INDENTATION_SIZE = 4;
 
@@ -22,11 +22,25 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
     public void Generate(OpenApiDocument document, string outputPath) {
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
         foreach (var (path, pathItem) in document.Paths) {
-            if (pathItem.Get is not null) Add(tags, pathItem.Get, path, "get");
-            if (pathItem.Post is not null) Add(tags, pathItem.Post, path, "post");
-            if (pathItem.Put is not null) Add(tags, pathItem.Put, path, "put");
-            if (pathItem.Delete is not null) Add(tags, pathItem.Delete, path, "delete");
-            if (pathItem.Patch is not null) Add(tags, pathItem.Patch, path, "patch");
+            if (pathItem.Get is not null) {
+                Add(tags, pathItem.Get, path, "get");
+            }
+
+            if (pathItem.Post is not null) {
+                Add(tags, pathItem.Post, path, "post");
+            }
+
+            if (pathItem.Put is not null) {
+                Add(tags, pathItem.Put, path, "put");
+            }
+
+            if (pathItem.Delete is not null) {
+                Add(tags, pathItem.Delete, path, "delete");
+            }
+
+            if (pathItem.Patch is not null) {
+                Add(tags, pathItem.Patch, path, "patch");
+            }
         }
 
         var bearerRequirement =
@@ -177,7 +191,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
 
     private static void Add(Dictionary<string, List<(string, Operation, string, string)>> dict, Operation op, string path, string method) {
         var tag = op.Tags.FirstOrDefault() ?? "Default";
-        var id = $"{method}_{Regex.Replace(path.Trim('/'), "[^a-zA-Z0-9]", "_")}";
+        var id = $"{method}_{IdentifierRegex().Replace(path.Trim('/'), "_")}";
         if (!dict.TryGetValue(tag, out var value)) {
             value = [];
             dict[tag] = value;
@@ -247,23 +261,19 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
         return nullable ? $"null | {type}" : type;
     }
 
-
     private static string GenerateFunctionName(string path, string method) {
         var parts = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
-           .Select(p => Regex.Replace(p, "[^a-zA-Z0-9]", ""))
+           .Select(p => IdentifierRegex().Replace(p, ""))
            .Select(Capitalize);
         return method + string.Concat(parts);
     }
 
     private static string GenerateInterfaceName(string path, string method) {
         var parts = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
-           .Select(p => Regex.Replace(p, "[^a-zA-Z0-9]", ""))
+           .Select(p => IdentifierRegex().Replace(p, ""))
            .Select(Capitalize);
         return string.Concat(parts) + Capitalize(method);
     }
-
-    private static string GenerateRefName(string name) =>
-        Regex.Replace(name, "[^a-zA-Z]", "");
 
     private static string Capitalize(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
@@ -272,10 +282,16 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
         string.IsNullOrEmpty(s) ? s : char.ToLowerInvariant(s[0]) + s[1..];
 
     private static string ToTemplateString(string path) =>
-        Regex.Replace(path, @"\{([^\}]+)\}", @"${$1}");
+        TemplateRegex().Replace(path, @"${$1}");
 
     private static string ToFieldName(string name) {
-        name = Regex.Replace(name, "[^a-zA-Z0-9]", "");
+        name = IdentifierRegex().Replace(name, "");
         return Lowerize(name);
     }
+
+    [GeneratedRegex("[^a-zA-Z0-9]")]
+    private static partial Regex IdentifierRegex();
+
+    [GeneratedRegex(@"\{([^\}]+)\}")]
+    private static partial Regex TemplateRegex();
 }

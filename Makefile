@@ -22,6 +22,9 @@ gen-art:
 gen-petstore:
 	dotnet run --project OpenApiGen -- Examples/PetStore.json generated
 
+sample:
+	dotnet build SampleApi
+
 help:
 	dotnet run --project OpenApiGen -- --help
 
