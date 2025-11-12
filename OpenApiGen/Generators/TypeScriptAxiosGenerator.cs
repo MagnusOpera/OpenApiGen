@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenApiGen.Generators;
 
-public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, Dictionary<string, Schema> components) {
+public class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) {
 
     private const int INDENTATION_SIZE = 4;
 
@@ -19,27 +19,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
         sb.AppendLine("");
     }
 
-    private string GenerateGlobalTypes(string outputPath) {
-        var sb = new StringBuilder();
-        AppendFileHeader(sb);
-
-        sb.AppendLine("export {}");
-        foreach (var (name, schema) in sharedSchemas) {
-            if (schema.Nullable is not null) throw new ApplicationException($"Shared type {name} shall not be nullable.");
-            sb.Append($"export type {name} = ");
-            sb.AppendLine(RawGenerateType(INDENTATION_SIZE, schema, [], []));
-        }
-        var outputFilename = Path.Combine(outputPath, "__shared_schemas__.ts");
-        File.WriteAllText(outputFilename, sb.ToString());
-
-        var types = string.Join(", ", sharedSchemas.Select(x => x.Key));
-        return $"import type {{ {types} }} from \"./__shared_schemas__\"";
-    }
-
-
     public void Generate(OpenApiDocument document, string outputPath) {
-        var globalImport = GenerateGlobalTypes(outputPath);
-
         var tags = new Dictionary<string, List<(string operationId, Operation op, string path, string method)>>();
         foreach (var (path, pathItem) in document.Paths) {
             if (pathItem.Get is not null) Add(tags, pathItem.Get, path, "get");
@@ -61,7 +41,6 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
             if (!File.Exists(outputFilename)) {
                 AppendFileHeader(sb);
                 sb.AppendLine("import type { AxiosInstance } from \"axios\"");
-                sb.AppendLine(globalImport);
                 sb.AppendLine();
             }
 
@@ -263,10 +242,7 @@ public class TypeScriptAxiosGenerator(Dictionary<string, Schema> sharedSchemas, 
     }
 
     private string GenerateType(int indent, Schema schema, string[] composedRequired, Dictionary<string, Schema> composedProperties) {
-        var jsonSchema = Json.Serialize(schema with { Nullable = null });
-        var type = sharedSchemas.Where(x => Json.Serialize(x.Value with { Nullable = null }) == jsonSchema).Select(x => x.Key).FirstOrDefault();
-        type ??= RawGenerateType(indent, schema, composedRequired, composedProperties);
-
+        var type = RawGenerateType(indent, schema, composedRequired, composedProperties);
         var nullable = schema.Nullable == true;
         return nullable ? $"null | {type}" : type;
     }

@@ -8,19 +8,19 @@ install:
 	npm ci
 
 gen:
-	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/SampleApi.json generated
+	dotnet run --project OpenApiGen -- Examples/SampleApi.json generated
 
 gen-buggy:
-	dotnet run --project OpenApiGen -- Examples/OpenApiGen.config.json Examples/BuggyApi.json generated
+	dotnet run --project OpenApiGen -- Examples/BuggyApi.json generated
 
 gen-invest:
-	dotnet run --project OpenApiGen -- Examples/InvestApi.config.json Examples/InvestApi.json generated
+	dotnet run --project OpenApiGen -- Examples/InvestApi.json generated
 
 gen-art:
-	dotnet run --project OpenApiGen -- Examples/InvestApi.config.json Examples/ArtApi.json generated
+	dotnet run --project OpenApiGen -- Examples/ArtApi.json generated
 
 gen-petstore:
-	dotnet run --project OpenApiGen -- Examples/Default.config.json Examples/PetStore.json generated
+	dotnet run --project OpenApiGen -- Examples/PetStore.json generated
 
 help:
 	dotnet run --project OpenApiGen -- --help
