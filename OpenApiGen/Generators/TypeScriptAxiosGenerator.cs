@@ -47,9 +47,12 @@ public partial class TypeScriptAxiosGenerator(Dictionary<string, Schema> compone
             document.Components?.SecuritySchemes?.Where(x => x.Value is HttpSecurityScheme { Scheme: "bearer" })
                     .Select(x => x.Key).FirstOrDefault();
 
+        var indexContent = new StringBuilder();
+        AppendFileHeader(indexContent);
         foreach (var (tag, operations) in tags) {
             var sb = new StringBuilder();
             var outputFilename = Path.Combine(outputPath, $"{tag}.ts");
+            indexContent.AppendLine($"export * from './{tag}'");
 
             // add imports
             if (!File.Exists(outputFilename)) {
@@ -146,7 +149,7 @@ public partial class TypeScriptAxiosGenerator(Dictionary<string, Schema> compone
                     sb.Append(' ', INDENTATION_SIZE); sb.AppendLine($"const __response__ = (await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`, __form__))");
                 } else {
                     var responseTypeConfig = hasBinaryResponse ? ", responseType: 'blob' as const" : "";
-                    sb.Append(' ', INDENTATION_SIZE); 
+                    sb.Append(' ', INDENTATION_SIZE);
                     sb.AppendLine($"const __response__ = await axios.{method}(`{ToTemplateString(path)}${{__queryString__}}`{requestArg}, {{ validateStatus: () => true{bearerHeader}{responseTypeConfig} }})");
                 }
                 sb.Append(' ', INDENTATION_SIZE); sb.AppendLine("switch (__response__.status) {");
@@ -173,6 +176,8 @@ public partial class TypeScriptAxiosGenerator(Dictionary<string, Schema> compone
 
             File.AppendAllText(outputFilename, sb.ToString());
         }
+        var indexFilename = Path.Combine(outputPath, "index.ts");
+        File.WriteAllText(indexFilename, indexContent.ToString());
 
         foreach (var (source, target) in _replacedShemas) {
             Console.WriteLine($"WARNING: component {source} replaced with {target}");
