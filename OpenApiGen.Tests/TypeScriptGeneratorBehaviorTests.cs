@@ -3,10 +3,10 @@ namespace OpenApiGen.Tests;
 public sealed class TypeScriptGeneratorBehaviorTests {
     [Fact]
     public void Axios_generation_emits_bearer_header_and_json_body_for_secured_json_operations() {
-        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Axios, "OpenApiGen.Tests/Fixtures/SecuredApi.json");
-        var userClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "pets.ts");
+        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Axios, "SampleApi/SampleApi.json");
+        var userClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "User.ts");
 
-        Assert.Contains("export async function patchPetsPetid(axios: AxiosInstance, bearer: string, petId: string, request: PetsPetidPatchRequest)", userClient);
+        Assert.Contains("export async function patchUserId(axios: AxiosInstance, bearer: string, id: string, request: UserIdPatchRequest)", userClient);
         Assert.Contains("__headers__.Authorization = `Bearer ${bearer}`;", userClient);
         Assert.Contains("__headers__[\"Content-Type\"] = \"application/json\";", userClient);
         Assert.Contains("data: JSON.stringify(request),", userClient);
@@ -14,13 +14,13 @@ public sealed class TypeScriptGeneratorBehaviorTests {
 
     [Fact]
     public void Fetch_generation_emits_bearer_header_for_secured_json_operations() {
-        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "OpenApiGen.Tests/Fixtures/SecuredApi.json");
-        var userClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "pets.ts");
+        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "SampleApi/SampleApi.json");
+        var userClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "User.ts");
 
-        Assert.Contains("export async function patchPetsPetid(fetcher: typeof fetch, bearer: string, petId: string, request: PetsPetidPatchRequest)", userClient);
+        Assert.Contains("export async function patchUserId(fetcher: typeof fetch, bearer: string, id: string, request: UserIdPatchRequest)", userClient);
         Assert.Contains("__headers__.Authorization = `Bearer ${bearer}`;", userClient);
         Assert.Contains("body: JSON.stringify(request),", userClient);
-        Assert.Contains("(await __readJson__(__response__)) as PetsPetidPatch200Response", userClient);
+        Assert.Contains("(await __readJson__(__response__)) as UserIdPatch200Response", userClient);
     }
 
     [Fact]
