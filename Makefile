@@ -11,15 +11,6 @@ install:
 gen:
 	dotnet run --project OpenApiGen -- --transport $(transport) Examples/SampleApi.json generated
 
-gen-buggy:
-	dotnet run --project OpenApiGen -- --transport $(transport) Examples/BuggyApi.json generated
-
-gen-invest:
-	dotnet run --project OpenApiGen -- --transport $(transport) Examples/InvestApi.json generated
-
-gen-art:
-	dotnet run --project OpenApiGen -- --transport $(transport) Examples/ArtApi.json generated
-
 gen-petstore:
 	dotnet run --project OpenApiGen -- --transport $(transport) Examples/PetStore.json generated
 
