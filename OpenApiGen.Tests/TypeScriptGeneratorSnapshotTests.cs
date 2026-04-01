@@ -4,9 +4,9 @@ public sealed class TypeScriptGeneratorSnapshotTests {
     [Theory]
     [InlineData(TypeScriptTransport.Axios, "axios")]
     [InlineData(TypeScriptTransport.Fetch, "fetch")]
-    public void PetStore_generation_matches_snapshot(TypeScriptTransport transport, string snapshotName) {
-        using var output = GenerationTestSupport.Generate(transport, "Examples/PetStore.json");
+    public void SampleApi_generation_matches_snapshot(TypeScriptTransport transport, string snapshotName) {
+        using var output = GenerationTestSupport.Generate(transport, "Examples/SampleApi.json");
 
-        GenerationTestSupport.AssertMatchesSnapshot(Path.Combine("Snapshots", "PetStore", snapshotName), output.DirectoryPath);
+        GenerationTestSupport.AssertMatchesSnapshot(Path.Combine("Snapshots", "SampleApi", snapshotName), output.DirectoryPath);
     }
 }

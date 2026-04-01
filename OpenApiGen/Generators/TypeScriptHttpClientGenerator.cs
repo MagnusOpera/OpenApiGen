@@ -36,8 +36,11 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
             document.Components?.SecuritySchemes?.Where(x => x.Value is HttpSecurityScheme { Scheme: "bearer" })
                 .Select(x => x.Key).FirstOrDefault();
 
+        var documentRequiresJsonResponseReader = tags.Values.Any(RequiresJsonResponseReader);
+
         var indexContent = new StringBuilder();
         AppendFileHeader(indexContent);
+        EmitTransportSupportFiles(outputPath, documentRequiresJsonResponseReader);
 
         foreach (var (tag, operations) in tags) {
             var sb = new StringBuilder();
@@ -45,7 +48,7 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
             indexContent.AppendLine($"export * from './{tag}'");
 
             AppendFileHeader(sb);
-            AppendTransportPreamble(sb);
+            AppendTransportPreamble(sb, RequiresJsonResponseReader(operations));
 
             foreach (var (operation, path, method) in operations) {
                 AppendOperation(
@@ -67,7 +70,10 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
         }
     }
 
-    protected abstract void AppendTransportPreamble(StringBuilder sb);
+    protected abstract void AppendTransportPreamble(StringBuilder sb, bool requiresJsonResponseReader);
+
+    protected virtual void EmitTransportSupportFiles(string outputPath, bool requiresJsonResponseReader) {
+    }
 
     protected abstract string ClientParameterDeclaration { get; }
 
@@ -75,7 +81,7 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
 
     protected abstract string GetResponseValueExpression(ResponseRenderContext response);
 
-    private static void AppendFileHeader(StringBuilder sb) {
+    protected static void AppendFileHeader(StringBuilder sb) {
         sb.AppendLine("/* eslint-disable */");
         sb.AppendLine("");
         sb.AppendLine("// -----------------------------------------------------------------------------------------");
@@ -99,13 +105,8 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
 
         var responses = BuildResponseRenderContexts(operation.Responses, method, path, interfaceBaseName);
         foreach (var response in responses) {
-            if (response.BodyKind == ResponseBodyKind.Binary) {
-                sb.AppendLine($"export type {response.TypeName} = Blob");
-                continue;
-            }
-
             sb.Append($"export type {response.TypeName} = ");
-            sb.AppendLine(GenerateType(IndentationSize, response.Schema ?? new PrimitiveSchema(), [], []));
+            sb.AppendLine(response.TypeDefinition);
         }
 
         var pathParameters = operation.Parameters?.Where(x => x.In != "query").ToList() ?? [];
@@ -215,7 +216,8 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
                     responseType,
                     typeName,
                     ResponseBodyKind.Json,
-                    responseContent.Schema ?? new PrimitiveSchema()
+                    responseContent.Schema ?? new PrimitiveSchema(),
+                    GenerateType(IndentationSize, responseContent.Schema ?? new PrimitiveSchema(), [], [])
                 ));
                 continue;
             }
@@ -225,7 +227,8 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
                     responseType,
                     typeName,
                     ResponseBodyKind.Text,
-                    responseContent.Schema ?? new PrimitiveSchema()
+                    responseContent.Schema ?? new PrimitiveSchema(),
+                    GenerateType(IndentationSize, responseContent.Schema ?? new PrimitiveSchema(), [], [])
                 ));
                 continue;
             }
@@ -235,7 +238,8 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
                     responseType,
                     typeName,
                     ResponseBodyKind.None,
-                    new PrimitiveSchema()
+                    new PrimitiveSchema(),
+                    "void"
                 ));
                 continue;
             }
@@ -244,12 +248,20 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
                 responseType,
                 typeName,
                 ResponseBodyKind.Binary,
-                null
+                null,
+                "Blob"
             ));
         }
 
         return renderedResponses;
     }
+
+    private static bool RequiresJsonResponseReader(List<(Operation operation, string path, string method)> operations) =>
+        operations.Any(tuple =>
+            tuple.operation.Responses.Values.Any(response =>
+                TryGetJsonMediaType(response.Content, out _)
+            )
+        );
 
     private string ParameterPrototype(Parameter param) {
         var tsType = GenerateType(0, param.Schema, [], []);
@@ -401,11 +413,17 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
         string StatusCode,
         string TypeName,
         ResponseBodyKind BodyKind,
-        Schema? Schema
+        Schema? Schema,
+        string TypeDefinition
     ) {
         public bool IsDefault => StatusCode == "default";
 
         public string UnionMember => $"[{(IsDefault ? "0" : StatusCode)}, {TypeName}]";
+
+        public bool IsVoidLikeType =>
+            TypeDefinition
+                .Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .All(type => type is "void" or "null");
     }
 
     private sealed record RequestRenderContext(

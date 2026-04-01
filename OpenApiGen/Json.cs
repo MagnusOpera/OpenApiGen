@@ -8,55 +8,48 @@ public sealed class SchemaConverter : JsonConverter<Schema> {
     public override Schema? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
         using var doc = JsonDocument.ParseValue(ref reader);
         var el = doc.RootElement;
+        var declaredTypes = GetDeclaredTypes(el);
+        var nonNullTypes = declaredTypes?.Where(type => type != "null").ToList() ?? [];
+        var nullableFromTypeArray = declaredTypes is not null && declaredTypes.Contains("null") && nonNullTypes.Count > 0;
 
         if (el.TryGetProperty("$ref", out _)) {
-            return DeserializeAs<RefSchema>(el, options);
+            return ApplyNullable(DeserializeAs<RefSchema>(el, options), nullableFromTypeArray);
         }
 
         if (el.TryGetProperty("anyOf", out _) || el.TryGetProperty("oneOf", out _)) {
-            return DeserializeAs<ComposedSchema>(el, options);
+            return ApplyNullable(DeserializeAs<ComposedSchema>(el, options), nullableFromTypeArray);
         }
 
         if (el.TryGetProperty("items", out _)) {
-            return DeserializeAs<ArraySchema>(el, options);
+            return ApplyNullable(DeserializeAs<ArraySchema>(el, options), nullableFromTypeArray);
         }
 
         if (el.TryGetProperty("enum", out _)) {
-            return DeserializeAs<EnumSchema>(el, options);
+            return ApplyNullable(DeserializeAs<EnumSchema>(el, options), nullableFromTypeArray);
         }
 
-        if ((el.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "object")
+        if ((declaredTypes?.Contains("object") == true)
             || el.TryGetProperty("properties", out _)
-            || el.TryGetProperty("required", out _)) {
-            return DeserializeAs<ObjectSchema>(el, options);
+            || el.TryGetProperty("required", out _)
+            || el.TryGetProperty("additionalProperties", out _)) {
+            return ApplyNullable(DeserializeAs<ObjectSchema>(el, options), nullableFromTypeArray);
         }
 
         // Special handling for OpenAPI 3.1: type can be string or array
-        if (el.TryGetProperty("type", out var typeProp)) {
-            if (typeProp.ValueKind == JsonValueKind.Array || typeProp.ValueKind == JsonValueKind.String) {
-                var typesList = new List<string>();
-                if (typeProp.ValueKind == JsonValueKind.String) {
-                    typesList.Add(typeProp.GetString()!);
-                } else {
-                    foreach (var tItem in typeProp.EnumerateArray()) {
-                        if (tItem.ValueKind == JsonValueKind.String) {
-                            typesList.Add(tItem.GetString()!);
-                        }
-                    }
-                }
-                // Manually build PrimitiveSchema
-                var prim = new PrimitiveSchema {
-                    Type = typesList,
-                    Format = el.TryGetProperty("format", out var fmt) ? fmt.GetString() : null,
-                    Pattern = el.TryGetProperty("pattern", out var pat) ? pat.GetString() : null,
-                    Default = el.TryGetProperty("default", out var def) ? def.ToString() : null
-                };
-                return prim;
-            }
+        if (declaredTypes is not null) {
+            // Manually build PrimitiveSchema
+            var prim = new PrimitiveSchema {
+                Type = nullableFromTypeArray ? nonNullTypes : declaredTypes,
+                Format = el.TryGetProperty("format", out var fmt) ? fmt.GetString() : null,
+                Pattern = el.TryGetProperty("pattern", out var pat) ? pat.GetString() : null,
+                Default = el.TryGetProperty("default", out var def) ? def.ToString() : null,
+                Nullable = nullableFromTypeArray
+            };
+            return prim;
         }
 
         // fallback
-        return DeserializeAs<PrimitiveSchema>(el, options)
+        return ApplyNullable(DeserializeAs<PrimitiveSchema>(el, options), nullableFromTypeArray)
                ?? throw new JsonException("Could not deserialize OpenAPI Schema.");
     }
 
@@ -83,6 +76,33 @@ public sealed class SchemaConverter : JsonConverter<Schema> {
 
     private static void SerializeAs<T>(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
         => JsonSerializer.Serialize(writer, value, options);
+
+    private static Schema? ApplyNullable(Schema? schema, bool nullableFromTypeArray) =>
+        schema is null || !nullableFromTypeArray ? schema : schema with { Nullable = true };
+
+    private static List<string>? GetDeclaredTypes(JsonElement el) {
+        if (!el.TryGetProperty("type", out var typeProp)) {
+            return null;
+        }
+
+        var types = new List<string>();
+        if (typeProp.ValueKind == JsonValueKind.String && typeProp.GetString() is string scalarType) {
+            types.Add(scalarType);
+            return types;
+        }
+
+        if (typeProp.ValueKind != JsonValueKind.Array) {
+            return null;
+        }
+
+        foreach (var item in typeProp.EnumerateArray()) {
+            if (item.ValueKind == JsonValueKind.String && item.GetString() is string arrayType) {
+                types.Add(arrayType);
+            }
+        }
+
+        return types;
+    }
 }
 
 
@@ -109,4 +129,3 @@ public static class Json {
     }
 
 }
-

@@ -1,0 +1,19 @@
+{
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Plain-text health probe",
+            "content": {
+              "text/plain": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

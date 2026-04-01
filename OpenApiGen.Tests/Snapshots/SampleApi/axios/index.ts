@@ -5,4 +5,7 @@
 // Do not modify this file directly. Any changes will be overwritten.
 // -----------------------------------------------------------------------------------------
 
-export * from './pets'
+export * from './Catalog'
+export * from './Diagnostics'
+export * from './Files'
+export * from './User'

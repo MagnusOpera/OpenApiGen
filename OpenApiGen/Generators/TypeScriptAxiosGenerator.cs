@@ -5,7 +5,7 @@ namespace OpenApiGen.Generators;
 public sealed class TypeScriptAxiosGenerator(Dictionary<string, Schema> components) : TypeScriptHttpClientGenerator(components) {
     protected override string ClientParameterDeclaration => "axios: AxiosInstance";
 
-    protected override void AppendTransportPreamble(StringBuilder sb) {
+    protected override void AppendTransportPreamble(StringBuilder sb, bool requiresJsonResponseReader) {
         sb.AppendLine("import type { AxiosInstance } from \"axios\"");
         sb.AppendLine();
     }
