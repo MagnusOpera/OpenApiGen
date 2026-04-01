@@ -25,6 +25,9 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Test
+        run: make test config=Release
+
       - name: Pack
         run: make pack config=Release version=${{ env.NUGET_VERSION }} 
 

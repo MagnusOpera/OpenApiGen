@@ -10,34 +10,36 @@ public static class Program {
             PrintHelp();
             return 0;
         }
-        if (args.Length != 2) {
+        if (!CommandLineOptions.TryParse(args, out var options)) {
             PrintHelp();
             return 5;
         }
 
-        var openapiFile = args[0];
-        var outputDir = args[1];
-
         // read api def
-        var apiDefJson = File.ReadAllText(openapiFile);
+        var apiDefJson = File.ReadAllText(options.OpenApiFile);
         var apiDef = Json.Deserialize<OpenApiDocument>(apiDefJson);
 
-        if (Directory.Exists(outputDir)) {
-            Directory.Delete(outputDir, true);
+        if (Directory.Exists(options.OutputDir)) {
+            Directory.Delete(options.OutputDir, true);
         }
-        Directory.CreateDirectory(outputDir);
+        Directory.CreateDirectory(options.OutputDir);
 
         // generate api
-        var generator = new Generators.TypeScriptAxiosGenerator(apiDef.Components?.Schemas ?? []);
-        generator.Generate(apiDef, outputDir);
+        Generators.TypeScriptHttpClientGenerator generator = options.Transport switch {
+            TypeScriptTransport.Axios => new Generators.TypeScriptAxiosGenerator(apiDef.Components?.Schemas ?? []),
+            TypeScriptTransport.Fetch => new Generators.TypeScriptFetchGenerator(apiDef.Components?.Schemas ?? []),
+            _ => throw new ApplicationException($"Unknown transport {options.Transport}")
+        };
+        generator.Generate(apiDef, options.OutputDir);
         return 0;
     }
 
     private static void PrintHelp() {
         Console.WriteLine("OpenApiGen - Generate TypeScript clients from OpenAPI definitions\n");
-        Console.WriteLine("Usage: OpenApiGen <openapi-file> <output-dir>");
+        Console.WriteLine("Usage: OpenApiGen --transport <axios|fetch> <openapi-file> <output-dir>");
         Console.WriteLine("       OpenApiGen --help\n");
         Console.WriteLine("Arguments:");
+        Console.WriteLine("  --transport <value>    Mandatory transport to generate: axios or fetch");
         Console.WriteLine("  <openapi-file>         Path to the OpenAPI definition JSON file");
         Console.WriteLine("  <output-dir>           Output directory for the generated client (will be purged)");
         Console.WriteLine();
