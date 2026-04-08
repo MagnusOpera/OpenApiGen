@@ -40,7 +40,7 @@ export async function postFilesUpload(fetcher: typeof fetch, request: FilesUploa
     if (request.description !== undefined) __form__.append("Description", request.description);
     const __headers__: Record<string, string> = {};
     const __requestInit__: RequestInit = {
-        method: "post",
+        method: "POST",
         headers: __headers__,
         body: __form__,
     };
@@ -65,7 +65,7 @@ export async function getFilesIdContent(fetcher: typeof fetch, id: string): Prom
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __requestInit__: RequestInit = {
-        method: "get",
+        method: "GET",
         headers: __headers__,
     };
     const __response__ = await fetcher(`/Files/${id}/content${__queryString__}`, __requestInit__);
@@ -75,4 +75,3 @@ export async function getFilesIdContent(fetcher: typeof fetch, id: string): Prom
         default: throw Error(`Unexpected status ${__response__.status}`)
     }
 }
-

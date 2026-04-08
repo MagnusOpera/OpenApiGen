@@ -9,6 +9,7 @@ public sealed class TypeScriptGeneratorBehaviorTests {
         Assert.Contains("export async function patchUserId(axios: AxiosInstance, bearer: string, id: string, request: UserIdPatchRequest)", userClient);
         Assert.Contains("__headers__.Authorization = `Bearer ${bearer}`;", userClient);
         Assert.Contains("__headers__[\"Content-Type\"] = \"application/json\";", userClient);
+        Assert.Contains("method: \"PATCH\",", userClient);
         Assert.Contains("data: JSON.stringify(request),", userClient);
     }
 
@@ -21,6 +22,7 @@ public sealed class TypeScriptGeneratorBehaviorTests {
         Assert.Contains("export async function patchUserId(fetcher: typeof fetch, bearer: string, id: string, request: UserIdPatchRequest)", userClient);
         Assert.Contains("import { __readJson__ } from \"./_fetch\"", userClient);
         Assert.Contains("__headers__.Authorization = `Bearer ${bearer}`;", userClient);
+        Assert.Contains("method: \"PATCH\",", userClient);
         Assert.Contains("body: JSON.stringify(request),", userClient);
         Assert.Contains("(await __readJson__(__response__)) as UserIdPatch200Response", userClient);
         Assert.Contains("export async function __readJson__(response: Response): Promise<unknown>", fetchRuntime);

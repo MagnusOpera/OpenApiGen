@@ -22,7 +22,7 @@ export async function postDiagnosticsEcho(axios: AxiosInstance, request: Diagnos
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "text/plain";
     const __response__ = await axios.request({
-        method: "post",
+        method: "POST",
         url: `/Diagnostics/echo${__queryString__}`,
         data: request,
         headers: __headers__,
@@ -48,7 +48,7 @@ export async function deleteDiagnosticsCacheKey(axios: AxiosInstance, key: strin
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __response__ = await axios.request({
-        method: "delete",
+        method: "DELETE",
         url: `/Diagnostics/cache/${key}${__queryString__}`,
         headers: __headers__,
         validateStatus: () => true,
@@ -58,4 +58,3 @@ export async function deleteDiagnosticsCacheKey(axios: AxiosInstance, key: strin
         default: return [0, __response__.data as DiagnosticsCacheKeyDelete0Response]
     }
 }
-

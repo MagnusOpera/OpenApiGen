@@ -22,7 +22,7 @@ export async function postDiagnosticsEcho(fetcher: typeof fetch, request: Diagno
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "text/plain";
     const __requestInit__: RequestInit = {
-        method: "post",
+        method: "POST",
         headers: __headers__,
         body: request,
     };
@@ -47,7 +47,7 @@ export async function deleteDiagnosticsCacheKey(fetcher: typeof fetch, key: stri
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __requestInit__: RequestInit = {
-        method: "delete",
+        method: "DELETE",
         headers: __headers__,
     };
     const __response__ = await fetcher(`/Diagnostics/cache/${key}${__queryString__}`, __requestInit__);
@@ -56,4 +56,3 @@ export async function deleteDiagnosticsCacheKey(fetcher: typeof fetch, key: stri
         default: return [0, (await __readJson__(__response__)) as DiagnosticsCacheKeyDelete0Response]
     }
 }
-

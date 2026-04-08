@@ -36,7 +36,7 @@ export async function patchUserId(axios: AxiosInstance, bearer: string, id: stri
     __headers__.Authorization = `Bearer ${bearer}`;
     __headers__["Content-Type"] = "application/json";
     const __response__ = await axios.request({
-        method: "patch",
+        method: "PATCH",
         url: `/User/${id}${__queryString__}`,
         data: JSON.stringify(request),
         headers: __headers__,

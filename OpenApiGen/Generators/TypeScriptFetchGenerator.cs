@@ -48,7 +48,7 @@ public sealed class TypeScriptFetchGenerator(Dictionary<string, Schema> componen
         }
 
         sb.Append(' ', IndentationSize); sb.AppendLine("const __requestInit__: RequestInit = {");
-        sb.Append(' ', IndentationSize * 2); sb.AppendLine($"method: \"{context.Method}\",");
+        sb.Append(' ', IndentationSize * 2); sb.AppendLine($"method: \"{context.Method.ToUpperInvariant()}\",");
         sb.Append(' ', IndentationSize * 2); sb.AppendLine("headers: __headers__,");
         if (bodyExpression is not null) {
             sb.Append(' ', IndentationSize * 2); sb.AppendLine($"body: {bodyExpression},");

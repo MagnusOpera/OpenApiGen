@@ -34,7 +34,7 @@ export async function getUser(fetcher: typeof fetch, skip?: number, limit?: numb
     const __queryString__ = __query__.length ? `?${__query__.join("&")}` : "";
     const __headers__: Record<string, string> = {};
     const __requestInit__: RequestInit = {
-        method: "get",
+        method: "GET",
         headers: __headers__,
     };
     const __response__ = await fetcher(`/User${__queryString__}`, __requestInit__);
@@ -65,7 +65,7 @@ export async function postUserHelloworld(fetcher: typeof fetch, request: UserHel
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "application/json";
     const __requestInit__: RequestInit = {
-        method: "post",
+        method: "POST",
         headers: __headers__,
         body: JSON.stringify(request),
     };
@@ -118,7 +118,7 @@ export async function patchUserId(fetcher: typeof fetch, bearer: string, id: str
     __headers__.Authorization = `Bearer ${bearer}`;
     __headers__["Content-Type"] = "application/json";
     const __requestInit__: RequestInit = {
-        method: "patch",
+        method: "PATCH",
         headers: __headers__,
         body: JSON.stringify(request),
     };
@@ -130,4 +130,3 @@ export async function patchUserId(fetcher: typeof fetch, bearer: string, id: str
         default: throw Error(`Unexpected status ${__response__.status}`)
     }
 }
-

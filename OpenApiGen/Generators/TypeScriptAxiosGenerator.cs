@@ -26,7 +26,7 @@ public sealed class TypeScriptAxiosGenerator(Dictionary<string, Schema> componen
         }
 
         sb.Append(' ', IndentationSize); sb.AppendLine("const __response__ = await axios.request({");
-        sb.Append(' ', IndentationSize * 2); sb.AppendLine($"method: \"{context.Method}\",");
+        sb.Append(' ', IndentationSize * 2); sb.AppendLine($"method: \"{context.Method.ToUpperInvariant()}\",");
         sb.Append(' ', IndentationSize * 2); sb.AppendLine($"url: `{ToTemplateString(context.Path)}${{__queryString__}}`,");
 
         switch (context.RequestBodyKind) {

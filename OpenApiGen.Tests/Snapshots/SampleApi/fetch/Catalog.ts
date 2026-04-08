@@ -59,7 +59,7 @@ export async function getCatalogDashboard(fetcher: typeof fetch): Promise<[200, 
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __requestInit__: RequestInit = {
-        method: "get",
+        method: "GET",
         headers: __headers__,
     };
     const __response__ = await fetcher(`/Catalog/dashboard${__queryString__}`, __requestInit__);
@@ -115,7 +115,7 @@ export async function postCatalogAdoptions(fetcher: typeof fetch, request: Catal
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "application/json";
     const __requestInit__: RequestInit = {
-        method: "post",
+        method: "POST",
         headers: __headers__,
         body: JSON.stringify(request),
     };
@@ -126,4 +126,3 @@ export async function postCatalogAdoptions(fetcher: typeof fetch, request: Catal
         default: return [0, (await __readJson__(__response__)) as CatalogAdoptionsPost0Response]
     }
 }
-

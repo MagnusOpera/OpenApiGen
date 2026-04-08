@@ -34,7 +34,7 @@ export async function getUser(axios: AxiosInstance, skip?: number, limit?: numbe
     const __queryString__ = __query__.length ? `?${__query__.join("&")}` : "";
     const __headers__: Record<string, string> = {};
     const __response__ = await axios.request({
-        method: "get",
+        method: "GET",
         url: `/User${__queryString__}`,
         headers: __headers__,
         validateStatus: () => true,
@@ -66,7 +66,7 @@ export async function postUserHelloworld(axios: AxiosInstance, request: UserHell
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "application/json";
     const __response__ = await axios.request({
-        method: "post",
+        method: "POST",
         url: `/User/hello-world${__queryString__}`,
         data: JSON.stringify(request),
         headers: __headers__,
@@ -120,7 +120,7 @@ export async function patchUserId(axios: AxiosInstance, bearer: string, id: stri
     __headers__.Authorization = `Bearer ${bearer}`;
     __headers__["Content-Type"] = "application/json";
     const __response__ = await axios.request({
-        method: "patch",
+        method: "PATCH",
         url: `/User/${id}${__queryString__}`,
         data: JSON.stringify(request),
         headers: __headers__,
@@ -133,4 +133,3 @@ export async function patchUserId(axios: AxiosInstance, bearer: string, id: stri
         default: throw Error(`Unexpected status ${__response__.status}`)
     }
 }
-

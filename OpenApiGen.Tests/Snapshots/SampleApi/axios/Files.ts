@@ -40,7 +40,7 @@ export async function postFilesUpload(axios: AxiosInstance, request: FilesUpload
     if (request.description !== undefined) __form__.append("Description", request.description);
     const __headers__: Record<string, string> = {};
     const __response__ = await axios.request({
-        method: "post",
+        method: "POST",
         url: `/Files/upload${__queryString__}`,
         data: __form__,
         headers: __headers__,
@@ -66,7 +66,7 @@ export async function getFilesIdContent(axios: AxiosInstance, id: string): Promi
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __response__ = await axios.request({
-        method: "get",
+        method: "GET",
         url: `/Files/${id}/content${__queryString__}`,
         headers: __headers__,
         validateStatus: () => true,
@@ -78,4 +78,3 @@ export async function getFilesIdContent(axios: AxiosInstance, id: string): Promi
         default: throw Error(`Unexpected status ${__response__.status}`)
     }
 }
-

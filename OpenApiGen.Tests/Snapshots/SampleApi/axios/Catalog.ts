@@ -59,7 +59,7 @@ export async function getCatalogDashboard(axios: AxiosInstance): Promise<[200, C
     const __queryString__ = "";
     const __headers__: Record<string, string> = {};
     const __response__ = await axios.request({
-        method: "get",
+        method: "GET",
         url: `/Catalog/dashboard${__queryString__}`,
         headers: __headers__,
         validateStatus: () => true,
@@ -116,7 +116,7 @@ export async function postCatalogAdoptions(axios: AxiosInstance, request: Catalo
     const __headers__: Record<string, string> = {};
     __headers__["Content-Type"] = "application/json";
     const __response__ = await axios.request({
-        method: "post",
+        method: "POST",
         url: `/Catalog/adoptions${__queryString__}`,
         data: JSON.stringify(request),
         headers: __headers__,
@@ -128,4 +128,3 @@ export async function postCatalogAdoptions(axios: AxiosInstance, request: Catalo
         default: return [0, __response__.data as CatalogAdoptionsPost0Response]
     }
 }
-
