@@ -3,6 +3,8 @@
 
 OpenApiGen is a .NET tool that generates simple, type-safe TypeScript clients from OpenAPI definitions. The generated clients are designed for easy integration with Axios or fetch.
 
+The package includes .NET 10 and .NET 11 targets. It accepts OpenAPI 3.0, 3.1, and 3.2 JSON for supported HTTP operations and payloads, including OpenAPI 3.2 `QUERY`.
+
 ## Usage
 Run the tool with:
 

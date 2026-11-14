@@ -1,8 +1,16 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.OpenApi;
 using SampleApi;
+using SampleApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi(options => {
+    options.CreateSchemaReferenceId = typeInfo => {
+        var id = OpenApiOptions.CreateDefaultSchemaReferenceId(typeInfo);
+        return id is not null && typeInfo.Type.Namespace == typeof(UserSummary).Namespace
+            ? $"{typeInfo.Type.Namespace}.{id}"
+            : id;
+    };
     options.AddDocumentTransformer<AddBearerSecuritySchemeDocumentTransformer>();
     options.AddOperationTransformer<EnhanceOperationsTransformer>();
 });
@@ -26,4 +34,8 @@ if (app.Environment.IsDevelopment()) {
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+#if NET11_0_OR_GREATER
+app.MapMethods("/search", ["QUERY"], (SearchRequest request) => request.Term)
+    .WithTags("Search");
+#endif
 app.Run();

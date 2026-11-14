@@ -59,7 +59,7 @@ export async function patchUserId(axios: AxiosInstance, bearer: string, id: stri
 - Inlines types for clarity and simplicity
 - Support for Bearer token (authorization header) and ApiKey (cookie)
 - Minimal dependencies, no runtime bloat
-- Supports OpenApi 3.0/3.1 Schema
+- Accepts OpenAPI 3.0, 3.1, and 3.2 JSON for supported HTTP operations and payloads, including OpenAPI 3.2 `QUERY`
 
 ## Getting Started
 
@@ -83,10 +83,12 @@ After installation, you can run the tool using:
 openapigen --help
 ```
 
+The tool package includes .NET 10 and .NET 11 targets. Install it with the SDK for the runtime you use. A project can also install it with `dotnet tool install --local MagnusOpera.OpenApiGen` from a directory with a tool manifest, then invoke it with `dotnet tool run openapigen`.
+
 ### Prerequisites
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
-- Node.js (for consuming generated TypeScript clients)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download) to build and pack both tool targets
+- .NET 10 SDK alongside .NET 11 and Node.js 24 for the full regression suite
 - [GNU Make](https://www.gnu.org/software/make/) (optional, for building with `make`)
 
 ### Build
@@ -104,8 +106,11 @@ make build
 Run the regression tests:
 
 ```bash
-make test
+npm ci
+make test config=Release
 ```
+
+The suite builds the sample API on both frameworks and checks the resulting OpenAPI 3.1 and 3.2 documents against the client snapshots. It also installs the same NuGet tool package with both SDKs, generates Axios and fetch clients from both documents, type-checks them, and exercises their request and response handling.
 
 To run the generator with the provided sample project:
 
@@ -121,7 +126,7 @@ This will generate a TypeScript client from the sample API definition in `Exampl
 Run the generator with your OpenAPI definition:
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -- --transport <axios|fetch> <path-to-openapi.json> <output-dir>
+dotnet run --project OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport <axios|fetch> <path-to-openapi.json> <output-dir>
 ```
 
 With:
@@ -148,11 +153,11 @@ The fetch transport keeps the runtime dependency surface minimal and works with 
 #### Example
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -- --transport axios Examples/PetStore.json ./generated
+dotnet run --project OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport axios Examples/PetStore.json ./generated
 ```
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -- --transport fetch Examples/PetStore.json ./generated
+dotnet run --project OpenApiGen/OpenApiGen.csproj -f net11.0 -- --transport fetch Examples/PetStore.json ./generated
 ```
 
 ## Project Structure

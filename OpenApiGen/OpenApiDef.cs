@@ -37,10 +37,11 @@ public record PathItem {
     public Operation? Put { get; init; }
     public Operation? Delete { get; init; }
     public Operation? Patch { get; init; }
+    public Operation? Query { get; init; }
 }
 
 public record Operation {
-    public required List<string> Tags { get; init; }
+    public List<string>? Tags { get; init; }
     public RequestBody? RequestBody { get; init; }
     public required Dictionary<string, Response> Responses { get; init; }
     public List<Parameter>? Parameters { get; init; }

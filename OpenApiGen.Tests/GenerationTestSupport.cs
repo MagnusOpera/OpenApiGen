@@ -23,6 +23,10 @@ internal static class GenerationTestSupport {
     public static TemporaryDirectory Generate(TypeScriptTransport transport, string relativeOpenApiPath) {
         var openApiPath = Path.Combine(RepoRoot, relativeOpenApiPath);
         var document = Json.Deserialize<OpenApiDocument>(File.ReadAllText(openApiPath));
+        return Generate(transport, document);
+    }
+
+    public static TemporaryDirectory Generate(TypeScriptTransport transport, OpenApiDocument document) {
         var output = new TemporaryDirectory();
         CreateGenerator(transport, document.Components?.Schemas ?? []).Generate(document, output.DirectoryPath);
         return output;

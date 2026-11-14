@@ -29,7 +29,9 @@ public sealed class FilesController : ControllerBase {
 
     [HttpGet("{id}/content")]
     [Produces("application/octet-stream")]
+#if NET10_0
     [BinaryResponse]
+#endif
     [JsonProblemResponses]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

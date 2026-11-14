@@ -95,3 +95,5 @@ public sealed record UploadAssetResponse {
     public required string FileName { get; init; }
     public Dictionary<string, string>? Metadata { get; init; }
 }
+
+public sealed record SearchRequest(string Term);

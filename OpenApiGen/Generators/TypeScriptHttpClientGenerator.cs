@@ -30,6 +30,10 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
             if (pathItem.Patch is not null) {
                 Add(tags, pathItem.Patch, path, "patch");
             }
+
+            if (pathItem.Query is not null) {
+                Add(tags, pathItem.Query, path, "query");
+            }
         }
 
         var bearerRequirement =
@@ -295,7 +299,7 @@ public abstract partial class TypeScriptHttpClientGenerator(Dictionary<string, S
     }
 
     private static void Add(Dictionary<string, List<(Operation, string, string)>> dict, Operation operation, string path, string method) {
-        var tag = operation.Tags.FirstOrDefault() ?? "Default";
+        var tag = operation.Tags?.FirstOrDefault() ?? "Default";
         if (!dict.TryGetValue(tag, out var value)) {
             value = [];
             dict[tag] = value;

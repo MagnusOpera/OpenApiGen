@@ -2,6 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
+#if NET11_0_OR_GREATER
+using ResponseMediaType = Microsoft.OpenApi.IOpenApiMediaType;
+#else
+using ResponseMediaType = Microsoft.OpenApi.OpenApiMediaType;
+#endif
+
 namespace SampleApi;
 
 [AttributeUsage(AttributeTargets.Method)]
@@ -55,8 +61,8 @@ public sealed class EnhanceOperationsTransformer : IOpenApiOperationTransformer 
             operation.Responses ??= [];
             operation.Responses["default"] = new OpenApiResponse {
                 Description = "Unexpected error",
-                Content = new Dictionary<string, OpenApiMediaType> {
-                    ["application/json"] = new() {
+                Content = new Dictionary<string, ResponseMediaType> {
+                    ["application/json"] = new OpenApiMediaType {
                         Schema = await context.GetOrCreateSchemaAsync(typeof(Microsoft.AspNetCore.Mvc.ProblemDetails), null, cancellationToken)
                     }
                 }

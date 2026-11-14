@@ -10,7 +10,9 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.100
+          dotnet-version: |
+            10.0.x
+            11.0.x
 
       - name: Set version variable
         run: |
@@ -24,6 +26,13 @@ jobs:
         run: echo 'Building ${{ github.ref }} with version ${{ env.NUGET_VERSION }}'
 
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
 
       - name: Test
         run: make test config=Release
