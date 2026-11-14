@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\LICENSE.md" Pack="true" PackagePath="\">
+    <Content Include="..\..\LICENSE.md" Pack="true" PackagePath="\">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>

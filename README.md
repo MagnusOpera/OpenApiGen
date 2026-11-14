@@ -6,6 +6,8 @@ OpenApiGen is a .NET tool for generating OpenAPI-based TypeScript clients. It ai
 
 [![NuGet Version](https://img.shields.io/nuget/v/MagnusOpera.OpenApiGen.svg)](https://www.nuget.org/packages/MagnusOpera.OpenApiGen)
 
+[Changelog](CHANGELOG.md)
+
 ## Why OpenApiGen?
 
 Existing tools often generate overly complicated clients. OpenApiGen focuses on:
@@ -126,7 +128,7 @@ This will generate a TypeScript client from the sample API definition in `Exampl
 Run the generator with your OpenAPI definition:
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport <axios|fetch> <path-to-openapi.json> <output-dir>
+dotnet run --project src/OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport <axios|fetch> <path-to-openapi.json> <output-dir>
 ```
 
 With:
@@ -153,17 +155,24 @@ The fetch transport keeps the runtime dependency surface minimal and works with 
 #### Example
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport axios Examples/PetStore.json ./generated
+dotnet run --project src/OpenApiGen/OpenApiGen.csproj -f net10.0 -- --transport axios Examples/PetStore.json ./generated
 ```
 
 ```bash
-dotnet run --project OpenApiGen/OpenApiGen.csproj -f net11.0 -- --transport fetch Examples/PetStore.json ./generated
+dotnet run --project src/OpenApiGen/OpenApiGen.csproj -f net11.0 -- --transport fetch Examples/PetStore.json ./generated
 ```
 
 ## Project Structure
 
-- `OpenApiGen/` - Main C# generator code
-- `Examples/` - Example OpenAPI definitions and configuration files
+- `src/OpenApiGen/` contains the .NET tool.
+- `src/SampleApi/` contains the ASP.NET Core sample.
+- `src/OpenApiGen.Tests/` contains the regression suite.
+- `Examples/` contains sample OpenAPI documents.
+- `website/public/` contains the product site and documentation.
+
+With Node.js installed, run `make website` and open `http://localhost:8000` to preview the site locally.
+
+To publish, set **Settings → Pages → Source** to **GitHub Actions**. Once the site changes are on `main`, run the **Publish Website** workflow from the **Actions** tab.
 
 ## Contributing
 
@@ -171,4 +180,4 @@ Contributions are welcome! Please open issues or pull requests for bug fixes, fe
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE.md](../LICENSE.md) for details.
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for details.

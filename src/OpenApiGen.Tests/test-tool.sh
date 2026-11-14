@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo=$(cd "$(dirname "$0")/.." && pwd -P)
+repo=$(cd "$(dirname "$0")/../.." && pwd -P)
 configuration=${1:-Debug}
 scratch=$(mktemp -d)
 trap 'rm -r -- "$scratch"' EXIT
@@ -14,7 +14,7 @@ if [[ ! -f "$compiler" ]]; then
     exit 1
 fi
 
-dotnet pack "$repo/OpenApiGen/OpenApiGen.csproj" -c "$configuration" \
+dotnet pack "$repo/src/OpenApiGen/OpenApiGen.csproj" -c "$configuration" \
     -p:Version="$package_version" -o "$scratch/feed"
 
 # Let the SDK choose the framework from the same package, just as a consumer's local tool manifest does.
@@ -37,7 +37,7 @@ for host in 10 11; do
         dotnet tool install MagnusOpera.OpenApiGen --version "$package_version" --source "$scratch/feed"
 
         for producer in 10 11; do
-            document="$repo/OpenApiGen.Tests/bin/$configuration/net$producer.0/openapi/SampleApi.json"
+            document="$repo/src/OpenApiGen.Tests/bin/$configuration/net$producer.0/openapi/SampleApi.json"
             for transport in axios fetch; do
                 echo "Testing .NET $host tool, .NET $producer document, $transport transport"
                 output="generated-$producer-$transport"
@@ -58,7 +58,7 @@ for host in 10 11; do
                 ln -s "$repo/node_modules" "$output/node_modules"
                 node "$compiler" --strict --exactOptionalPropertyTypes --noUnusedLocals --noUnusedParameters \
                     --skipLibCheck --target ES2022 --module node16 --outDir "$output/compiled" "$output/index.ts"
-                node "$repo/OpenApiGen.Tests/client-runtime.cjs" "$transport" "$producer" "$PWD/$output/compiled"
+                node "$repo/src/OpenApiGen.Tests/client-runtime.cjs" "$transport" "$producer" "$PWD/$output/compiled"
             done
         done
     )

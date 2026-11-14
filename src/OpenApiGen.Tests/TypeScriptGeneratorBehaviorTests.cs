@@ -30,7 +30,7 @@ public sealed class TypeScriptGeneratorBehaviorTests {
 
     [Fact]
     public void Fetch_generation_keeps_multipart_requests_as_form_data() {
-        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "OpenApiGen.Tests/Fixtures/MultipartApi.json");
+        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "src/OpenApiGen.Tests/Fixtures/MultipartApi.json");
         var userClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "uploads.ts");
 
         Assert.Contains("const __form__ = new FormData();", userClient);
@@ -40,7 +40,7 @@ public sealed class TypeScriptGeneratorBehaviorTests {
 
     [Fact]
     public void Fetch_generation_omits_unused_json_helper_and_handles_void_text_responses() {
-        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "OpenApiGen.Tests/Fixtures/TextVoidApi.json");
+        using var output = GenerationTestSupport.Generate(TypeScriptTransport.Fetch, "src/OpenApiGen.Tests/Fixtures/TextVoidApi.json");
         var healthClient = GenerationTestSupport.ReadGeneratedFile(output.DirectoryPath, "health.ts");
 
         Assert.DoesNotContain("async function __readJson__", healthClient);

@@ -4,31 +4,35 @@ transport ?= axios
 framework ?= net10.0
 
 build:
-	dotnet build OpenApiGen/OpenApiGen.csproj -c $(config)
+	dotnet build src/OpenApiGen/OpenApiGen.csproj -c $(config)
 
 install:
 	npm ci
 
 gen:
-	dotnet run --project OpenApiGen -f $(framework) -- --transport $(transport) Examples/SampleApi.json generated
+	dotnet run --project src/OpenApiGen -f $(framework) -- --transport $(transport) Examples/SampleApi.json generated
 
 gen-petstore:
-	dotnet run --project OpenApiGen -f $(framework) -- --transport $(transport) Examples/PetStore.json generated
+	dotnet run --project src/OpenApiGen -f $(framework) -- --transport $(transport) Examples/PetStore.json generated
 
 sample:
-	dotnet build SampleApi
+	dotnet build src/SampleApi
 
 help:
-	dotnet run --project OpenApiGen -f $(framework) -- --help
+	dotnet run --project src/OpenApiGen -f $(framework) -- --help
 
 pack:
-	dotnet pack OpenApiGen/OpenApiGen.csproj -c $(config) -p:Version=$(version) -o .out
+	dotnet pack src/OpenApiGen/OpenApiGen.csproj -c $(config) -p:Version=$(version) -o .out
 
 test:
-	dotnet test OpenApiGen.Tests/OpenApiGen.Tests.csproj -c $(config)
-	bash OpenApiGen.Tests/test-tool.sh "$(config)"
+	dotnet test src/OpenApiGen.Tests/OpenApiGen.Tests.csproj -c $(config)
+	bash src/OpenApiGen.Tests/test-tool.sh "$(config)"
 
 publish: .out/*.nupkg
 	@for file in $^ ; do \
 		dotnet nuget push $$file -k $(nugetkey) -s https://api.nuget.org/v3/index.json --skip-duplicate ; \
     done
+
+.PHONY: website
+website:
+	node website/preview.mjs

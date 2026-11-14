@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiGen", "OpenApiGen\OpenApiGen.csproj", "{EC5AB050-D9D2-46A1-82C7-C4F96BA94470}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiGen", "src\OpenApiGen\OpenApiGen.csproj", "{EC5AB050-D9D2-46A1-82C7-C4F96BA94470}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApi", "SampleApi\SampleApi.csproj", "{8EE17C87-C151-4A12-8731-194B6973EDBF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApi", "src\SampleApi\SampleApi.csproj", "{8EE17C87-C151-4A12-8731-194B6973EDBF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiGen.Tests", "OpenApiGen.Tests\OpenApiGen.Tests.csproj", "{8E3E4534-AC62-4B42-B6FF-AD1F79F6DF33}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiGen.Tests", "src\OpenApiGen.Tests\OpenApiGen.Tests.csproj", "{8E3E4534-AC62-4B42-B6FF-AD1F79F6DF33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

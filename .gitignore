@@ -436,7 +436,7 @@ service-account.json
 *.ts
 *.zip
 !Examples/*.json
-!OpenApiGen.Tests/**/*.json
-!OpenApiGen.Tests/**/*.ts
+!src/OpenApiGen.Tests/**/*.json
+!src/OpenApiGen.Tests/**/*.ts
 !package.json
 !package-lock.json

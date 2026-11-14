@@ -18,7 +18,7 @@ internal sealed class TemporaryDirectory : IDisposable {
 }
 
 internal static class GenerationTestSupport {
-    public static string RepoRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../"));
+    public static string RepoRoot => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
 
     public static TemporaryDirectory Generate(TypeScriptTransport transport, string relativeOpenApiPath) {
         var openApiPath = Path.Combine(RepoRoot, relativeOpenApiPath);
@@ -33,7 +33,7 @@ internal static class GenerationTestSupport {
     }
 
     public static void AssertMatchesSnapshot(string snapshotRelativePath, string actualDirectory) {
-        var expectedDirectory = Path.Combine(RepoRoot, "OpenApiGen.Tests", snapshotRelativePath);
+        var expectedDirectory = Path.Combine(RepoRoot, "src", "OpenApiGen.Tests", snapshotRelativePath);
         var expectedFiles = Directory.GetFiles(expectedDirectory, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(expectedDirectory, path))
             .OrderBy(path => path)
