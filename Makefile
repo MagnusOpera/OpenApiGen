@@ -28,11 +28,6 @@ test:
 	dotnet test src/OpenApiGen.Tests/OpenApiGen.Tests.csproj -c $(config)
 	bash src/OpenApiGen.Tests/test-tool.sh "$(config)"
 
-publish: .out/*.nupkg
-	@for file in $^ ; do \
-		dotnet nuget push $$file -k $(nugetkey) -s https://api.nuget.org/v3/index.json --skip-duplicate ; \
-    done
-
 .PHONY: website website-build
 website-build:
 	node website/build-changelog.mjs

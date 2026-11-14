@@ -1,9 +1,17 @@
 name: build
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing GitHub release tag to publish to NuGet
+        required: true
+        type: string
 
 jobs:
   build:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -48,22 +56,44 @@ jobs:
           name: nugets
 
   publish:
-    if: github.ref_type == 'tag'
+    if: >-
+      ${{ !cancelled() &&
+          ((github.event_name == 'push' && github.ref_type == 'tag' && needs.build.result == 'success') ||
+           (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
     environment: publish
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Info
         run: echo 'Building ${{ github.ref }}'
 
-      - uses: actions/checkout@v4
-
-      - name: Download NuGet
+      - name: Download package from build
+        if: github.event_name == 'push'
         uses: actions/download-artifact@v4
         with:
           name: nugets
           path: .out
 
+      - name: Download package from GitHub release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release download --repo "$GITHUB_REPOSITORY" --dir .out \
+            --pattern "MagnusOpera.OpenApiGen.$RELEASE_TAG.nupkg" -- "$RELEASE_TAG"
+
+      - name: NuGet login
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: pct-magnusopera
+
       - name: Publish NuGet
-        run: make publish nugetkey=${{secrets.NUGET_KEY}}
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push '.out/*.nupkg' --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

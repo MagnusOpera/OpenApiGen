@@ -4,6 +4,8 @@ Release notes for OpenApiGen. Older entries were reconstructed from the tagged c
 
 ## [Unreleased]
 
+- Publish NuGet packages with GitHub Actions trusted publishing and support retrying from an existing GitHub release.
+
 ## [0.47]
 
 ### [0.47.0]

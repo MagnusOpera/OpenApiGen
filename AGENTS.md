@@ -14,3 +14,8 @@
 - At release time, move the entries to a `### [X.Y.Z]` heading under the matching `## [X.Y]` release line. Keep the newest releases first and leave `[Unreleased]` ready for the next change.
 - End each release entry with a **Full Changelog** link comparing the previous release tag to the new tag. Use a **Release tag** link for the first release or two tags on the same commit.
 - Edit `CHANGELOG.md` for the website changelog. Run `make website-build` to render the page.
+
+## NuGet publishing
+
+- The tag build publishes through NuGet Trusted Publishing. The policy matches `MagnusOpera/OpenApiGen`, workflow `build.yml`, and GitHub environment `publish`.
+- To publish a package already attached to a GitHub release, run the `build` workflow manually from `main` with the existing release tag.
