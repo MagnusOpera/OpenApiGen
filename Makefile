@@ -33,6 +33,9 @@ publish: .out/*.nupkg
 		dotnet nuget push $$file -k $(nugetkey) -s https://api.nuget.org/v3/index.json --skip-duplicate ; \
     done
 
-.PHONY: website
-website:
+.PHONY: website website-build
+website-build:
+	node website/build-changelog.mjs
+
+website: website-build
 	node website/preview.mjs

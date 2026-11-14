@@ -440,3 +440,4 @@ service-account.json
 !src/OpenApiGen.Tests/**/*.ts
 !package.json
 !package-lock.json
+/website/public/changelog.html

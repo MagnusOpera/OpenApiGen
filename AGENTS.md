@@ -12,4 +12,5 @@
 - Keep `## [Unreleased]` as the first section in `CHANGELOG.md`.
 - Add a short, user-facing, single-line bullet for each notable change. Keep bullets adjacent and leave a blank line around headings and compare links.
 - At release time, move the entries to a `### [X.Y.Z]` heading under the matching `## [X.Y]` release line. Keep the newest releases first and leave `[Unreleased]` ready for the next change.
-- End each release entry with a **Full Changelog** link comparing the previous release tag to the new tag.
+- End each release entry with a **Full Changelog** link comparing the previous release tag to the new tag. Use a **Release tag** link for the first release or two tags on the same commit.
+- Edit `CHANGELOG.md` for the website changelog. Run `make website-build` to render the page.

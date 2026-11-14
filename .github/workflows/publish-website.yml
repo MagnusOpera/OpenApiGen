@@ -26,6 +26,13 @@ jobs:
           ref: main
           persist-credentials: false
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build changelog page
+        run: make website-build
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 

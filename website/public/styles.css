@@ -77,6 +77,13 @@ pre code { font: inherit; }
 .guide .code-block { margin-bottom: 1.1rem; }
 .note { padding: .8rem 1rem; border-inline-start: 3px solid var(--green); background: #eaf0e7; }
 
+.changelog { max-width: 48rem; padding-block: 3.5rem; }
+.changelog h2 { margin-top: 2.4rem; padding-top: 1.55rem; border-top: 1px solid var(--line); }
+.changelog h3 { font-family: var(--mono); font-size: .9rem; color: var(--green); }
+.changelog ul { padding-left: 1.35rem; margin-block: .7rem; }
+.changelog li + li { margin-top: .3rem; }
+.release-link { font-size: .88rem; }
+
 @media (max-width: 760px) {
   .hero, .quick-grid, .docs { grid-template-columns: minmax(0, 1fr); }
   .docs, .features { padding-block: 2.2rem; }
